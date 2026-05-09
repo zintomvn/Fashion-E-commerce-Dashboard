@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.pytest_cache/
+
+# Environments
+.venv/
+venv/
+ENV/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Outputs (reproducible artifacts)
+# outputs/
+# !outputs/**/.gitkeep
+
+# Processed / external data (can be regenerated or downloaded)
+data/processed/
+data/external/
+!data/processed/.gitkeep
+!data/external/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

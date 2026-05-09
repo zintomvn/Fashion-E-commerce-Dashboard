@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# DATATHON-2026 VinUni — What-If Dashboard Dependencies
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Core
+streamlit>=1.35.0
+pandas>=2.0.0
+numpy>=1.26.0
+python-dateutil>=2.9.0
+
+# Visualisation
+plotly>=5.22.0
+
+# ML / Analytics
+scikit-learn>=1.4.0
+lightgbm>=4.3.0      # Surrogate model for SHAP (fallback: GradientBoosting)
+shap>=0.45.0          # SHAP explainability (optional — fallback used if missing)
+
+# Notebook kernel (existing)
+ipykernel>=6.0.0
+jupyter-client>=8.0.0
+
+# Utilities
+packaging>=23.0
+tzdata>=2024.1
