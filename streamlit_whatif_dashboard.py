@@ -72,7 +72,7 @@ inject_css()
 PAGES = {
     "Tổng quan Lợi Nhuận":        "A",
     "Khuyến mãi":     "B",
-    "Vận hành": "C",
+    "Phân tích thử nghiệm": "C",
     "Phân tích và Diễn giải":          "D",
 }
 

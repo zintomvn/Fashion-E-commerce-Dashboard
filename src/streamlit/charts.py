@@ -202,7 +202,10 @@ def chart_order_status_monthly(orders: pd.DataFrame) -> go.Figure:
             marker_color=colors[i % len(colors)],
         ))
     _apply_theme(fig, "Phân Phối Trạng Thái Đơn Hàng (Theo Tháng)")
-    fig.update_layout(barmode="stack", height=340, xaxis_tickangle=-30)
+    fig.update_layout(
+        barmode="stack", height=340, xaxis_tickangle=-30,
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1)
+    )
     return fig
 
 
@@ -249,7 +252,10 @@ def chart_bcg_portfolio(portfolio: pd.DataFrame) -> go.Figure:
     fig.add_hline(y=my, line_dash="dash", line_color=PALETTE["muted"], opacity=0.5)
 
     _apply_theme(fig, "Danh Mục Sản Phẩm — Ma Trận BCG")
-    fig.update_layout(height=420, legend_title_text="Phân khúc")
+    fig.update_layout(
+        height=420, legend_title_text="Phân khúc",
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1)
+    )
     return fig
 
 
@@ -269,7 +275,7 @@ def chart_rfm_clustering(rfm: pd.DataFrame) -> go.Figure:
         color_discrete_map=SEGMENT_COLORS,
         size="frequency" if "frequency" in df.columns else None,
         size_max=20,
-        opacity=0.5,
+        opacity=0.75,
         labels={
             "recency": "Số ngày từ lần mua gần nhất",
             "monetary": "Giá trị chi tiêu (log)",
@@ -277,9 +283,14 @@ def chart_rfm_clustering(rfm: pd.DataFrame) -> go.Figure:
             "frequency": "Tần suất mua"
         }
     )
+    fig.update_traces(marker=dict(line=dict(width=0.5, color='rgba(0,0,0,0.5)')))
     fig.update_yaxes(type="log")
     _apply_theme(fig, "Phân Cụm RFM: Recency vs Monetary")
-    fig.update_layout(height=450)
+    fig.update_layout(
+        height=500,
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(b=80)
+    )
     return fig
 
 
@@ -304,13 +315,17 @@ def chart_segment_matrix(cross_tab: pd.DataFrame) -> go.Figure:
         cross_tab.values,
         x=cross_tab.columns.tolist(),
         y=cross_tab.index.tolist(),
-        color_continuous_scale="YlGnBu",
+        color_continuous_scale=[
+            [0.0, "#FFFFFF"],
+            [1.0, PALETTE["primary"]]
+        ],
         aspect="auto",
         text_auto=".1%",
         labels={"x": "Phân khúc sản phẩm", "y": "Phân khúc khách hàng", "color": "Tỷ trọng"}
     )
     _apply_theme(fig, "Tỷ trọng sản lượng: Khách hàng × Sản phẩm")
-    fig.update_layout(height=450, coloraxis_showscale=True)
+    fig.update_traces(xgap=1, ygap=1)
+    fig.update_layout(height=500, coloraxis_showscale=True)
     return fig
     
 # ---------------------------------------------------------------------------
@@ -370,6 +385,7 @@ def chart_gain_curve(uplift_sorted: pd.DataFrame) -> go.Figure:
         xaxis_title="% Khách hàng mục tiêu",
         yaxis_title="Lợi Nhuận Tăng Thêm Lũy Kế",
         yaxis_tickformat=",.0f",
+        legend=dict(orientation="h", yanchor="bottom", y=0.85, xanchor="right", x=1)
     )
     return fig
 
@@ -473,9 +489,9 @@ def chart_delta_profit_bar(cf: pd.DataFrame, selected_segment: str | None = None
         textposition="auto",
         insidetextanchor="end",
         customdata=df[["action", "feature"]].values,
-        hovertemplate="<b>Hành động:</b> %{customdata[0]}<br><b>Biến:</b> %{customdata[1]}<br><b>Thay đổi LN:</b> %{x:+.2f}%<extra></extra>",
+        hovertemplate="<b>Hành động:</b> %{customdata[0]}<br><b>Biến:</b> %{customdata[1]}<br><b>Thay đổi Lơi nhuận:</b> %{x:+.2f}%<extra></extra>",
     ))
-    _apply_theme(fig, f"% Thay Đổi LN Theo Hành Động — {selected_segment or 'Tất Cả'}")
+    _apply_theme(fig, f"% Thay Đổi Lợi nhuận Theo Hành Động — {selected_segment or 'Tất Cả'}")
     fig.update_layout(
         height=max(300, len(df) * 35 + 80), 
         xaxis_title="Δ Lợi nhuận (%)",
@@ -485,7 +501,7 @@ def chart_delta_profit_bar(cf: pd.DataFrame, selected_segment: str | None = None
     return fig
 
 
-def chart_ops_waterfall(row: pd.Series) -> go.Figure:
+def chart_ops_waterfall(row: pd.Series, height: int = 380) -> go.Figure:
     """Waterfall chart for a single counterfactual row."""
     labels   = ["Lợi nhuận cơ sở", "Δ Doanh thu", "Δ Chi phí", "Lợi nhuận đề xuất"]
     values   = [
@@ -506,7 +522,7 @@ def chart_ops_waterfall(row: pd.Series) -> go.Figure:
         totals=dict(marker_color=PALETTE["primary"]),
     ))
     _apply_theme(fig, "Kịch Bản Vận Hành: Hiện Tại → Đề Xuất")
-    fig.update_layout(height=380)
+    fig.update_layout(height=height)
     return fig
 
 
@@ -586,13 +602,17 @@ def chart_correlation_heatmap(df: pd.DataFrame, cols: list[str]) -> go.Figure:
         z=corr.values,
         x=corr.columns.tolist(),
         y=corr.index.tolist(),
-        colorscale="RdBu_r",
+        colorscale=[
+            [0.0, PALETTE["danger"]],
+            [0.5, "#FFFFFF"],
+            [1.0, PALETTE["primary"]]
+        ],
         zmid=0,
         zmin=-1, zmax=1,
-        text=corr.values,
-        texttemplate="%{text:.2f}",
+        texttemplate="%{z:.2f}",
         hovertemplate="(%{x}, %{y}): %{z:.2f}<extra></extra>",
         colorbar=dict(title="r"),
+        xgap=1, ygap=1,
     ))
     _apply_theme(fig, "Heatmap Tương Quan Các Biến")
     fig.update_layout(height=500)
@@ -609,16 +629,32 @@ def chart_scatter_regression(
     if len(df_plot) < 5:
         return go.Figure()
 
-    # OLS
     x_vals = df_plot[x_col].values
     y_vals = df_plot[y_col].values
-    coeffs = np.polyfit(x_vals, y_vals, 1)
     x_line = np.linspace(x_vals.min(), x_vals.max(), 200)
-    y_line = np.polyval(coeffs, x_line)
+    
+    is_binary = len(np.unique(y_vals)) == 2 or y_col == "True_Y"
+    
+    if is_binary:
+        from sklearn.linear_model import LogisticRegression
+        model = LogisticRegression().fit(x_vals.reshape(-1, 1), y_vals)
+        y_line = model.predict_proba(x_line.reshape(-1, 1))[:, 1]
+        line_name = "Hồi quy Logistic"
+    else:
+        coeffs = np.polyfit(x_vals, y_vals, 1)
+        y_line = np.polyval(coeffs, x_line)
+        line_name = f"OLS (slope={coeffs[0]:.3f})"
 
     fig = go.Figure()
+    
+    if is_binary:
+        jitter = np.random.uniform(-0.05, 0.05, size=len(y_vals))
+        y_scatter = y_vals + jitter
+    else:
+        y_scatter = y_vals
+
     fig.add_trace(go.Scatter(
-        x=df_plot[x_col], y=df_plot[y_col],
+        x=x_vals, y=y_scatter,
         mode="markers",
         marker=dict(color=PALETTE["primary"], opacity=0.4, size=4),
         name="Quan sát",
@@ -627,10 +663,12 @@ def chart_scatter_regression(
         x=x_line, y=y_line,
         mode="lines",
         line=dict(color=PALETTE["secondary"], width=2),
-        name=f"OLS (slope={coeffs[0]:.3f})",
+        name=line_name,
     ))
     _apply_theme(fig, f"Biểu Đồ Phân Tán: {x_col} vs {y_col}")
-    fig.update_layout(height=380, xaxis_title=x_col, yaxis_title=y_col)
+    fig.update_layout(height=380, xaxis_title=x_col, yaxis_title=y_col, 
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1),
+    )
     return fig
 
 
@@ -648,7 +686,7 @@ def chart_confounder_bar(confounder_df: pd.DataFrame) -> go.Figure:
         orientation="h",
         marker=dict(
             color=colors_vals,
-            colorscale=[[0, PALETTE["info"]], [0.5, PALETTE["secondary"]], [1, PALETTE["danger"]]],
+            colorscale=[[0, "#E8F0FE"], [1, PALETTE["primary"]]],
             cmax=max_c, cmin=0, colorbar=dict(title="Điểm"),
         ),
         hovertemplate="%{y}: điểm=%{x:.4f}<br>assoc_T=%{customdata[0]:.3f}, assoc_Y=%{customdata[1]:.3f}<extra></extra>",
@@ -693,5 +731,57 @@ def chart_distribution(df: pd.DataFrame, col: str, nbins: int = 40) -> go.Figure
         opacity=0.75,
     ))
     _apply_theme(fig, f"Phân Phối Của {col}")
-    fig.update_layout(height=320, xaxis_title=col, yaxis_title="Số lượng")
+    fig.update_layout(height=380, xaxis_title=col, yaxis_title="Số lượng")
     return fig
+
+
+def chart_box_by_class(df: pd.DataFrame, num_col: str, class_col: str) -> go.Figure:
+    """Boxplot of a numeric feature grouped by binary class."""
+    if df.empty or num_col not in df.columns or class_col not in df.columns:
+        return go.Figure()
+    
+    df_plot = df[[num_col, class_col]].dropna().copy()
+    # Convert class to string for categorical axis
+    df_plot[class_col] = df_plot[class_col].astype(int).astype(str)
+    
+    fig = px.box(
+        df_plot, x=class_col, y=num_col,
+        color=class_col, 
+        color_discrete_sequence=[PALETTE["primary"], PALETTE["secondary"]],
+        labels={class_col: "Lớp (Class)", num_col: num_col}
+    )
+    _apply_theme(fig, f"Phân Bố {num_col} Theo {class_col}")
+    fig.update_layout(height=380, showlegend=False)
+    return fig
+
+def chart_confusion_matrix(cm: np.ndarray) -> go.Figure:
+    """Heatmap for Confusion Matrix."""
+    if cm is None or len(cm) != 2:
+        return go.Figure()
+    
+    # Calculate percentages for annotations
+    cm_pct = cm / cm.sum() * 100
+    
+    labels = ["0 (Negative)", "1 (Positive)"]
+    fig = go.Figure(go.Heatmap(
+        z=cm,
+        x=labels,
+        y=labels,
+        colorscale=[[0, "#FFFFFF"], [1, PALETTE["primary"]]],
+        text=[[f"{cm[i][j]:,} ({cm_pct[i][j]:.1f}%)" for j in range(2)] for i in range(2)],
+        texttemplate="%{text}",
+        hovertemplate="Thực tế: %{y}<br>Dự đoán: %{x}<br>Số lượng: %{z}<extra></extra>",
+        showscale=False,
+        xgap=1, ygap=1,
+    ))
+    
+    # Update layout
+    _apply_theme(fig, "Ma Trận Nhầm Lẫn (Confusion Matrix)")
+    fig.update_layout(
+        height=380,
+        xaxis_title="Dự Đoán",
+        yaxis_title="Thực Tế",
+        yaxis=dict(autorange="reversed")
+    )
+    return fig
+

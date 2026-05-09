@@ -53,34 +53,31 @@ def render(filters: dict) -> None:
     # CONTROLS
     # =========================================================
     # render_section_header("Điều Khiển Kịch Bản", "")
-    col1, col2, col3 = st.columns(3)
+    st.sidebar.markdown("### Điều Khiển Kịch Bản")
+    
+    all_segments = engine.segments
+    selected_seg = st.sidebar.selectbox("Phân khúc khách hàng", all_segments, key="ops_segment")
 
-    with col1:
-        all_segments = engine.segments
-        selected_seg = st.selectbox("Phân khúc khách hàng", all_segments, key="ops_segment")
+    def format_action_text(val):
+        if pd.isna(val) or val == "(Tất cả)": return str(val)
+        s = str(val)
+        lower_s = s.lower()
+        for sep in [" trong ", " cho ", " tại ", " của ", " ở "]:
+            idx = lower_s.find(sep)
+            if idx != -1:
+                main_part = s[:idx].strip()
+                sub_part = s[idx:].strip()
+                main_part = main_part[0].upper() + main_part[1:] if main_part else ""
+                return f"{main_part} ({sub_part})"
+        return s[0].upper() + s[1:] if s else s
 
-    with col2:
-        def format_action_text(val):
-            if pd.isna(val) or val == "(Tất cả)": return str(val)
-            s = str(val)
-            lower_s = s.lower()
-            for sep in [" trong ", " cho ", " tại ", " của ", " ở "]:
-                idx = lower_s.find(sep)
-                if idx != -1:
-                    main_part = s[:idx].strip()
-                    sub_part = s[idx:].strip()
-                    main_part = main_part[0].upper() + main_part[1:] if main_part else ""
-                    return f"{main_part} ({sub_part})"
-            return s[0].upper() + s[1:] if s else s
+    all_actions = engine.actions
+    selected_action = st.sidebar.selectbox("Hành động", ["(Tất cả)"] + all_actions, format_func=format_action_text, key="ops_action")
+    action_filter = None if selected_action == "(Tất cả)" else selected_action
 
-        all_actions = engine.actions
-        selected_action = st.selectbox("Hành động", ["(Tất cả)"] + all_actions, format_func=format_action_text, key="ops_action")
-        action_filter = None if selected_action == "(Tất cả)" else selected_action
-
-    with col3:
-        sort_map = {"Phần trăm thay đổi lợi nhuận": "delta_profit_pct", "Thay đổi lợi nhuận tuyệt đối": "delta_profit"}
-        sort_label = st.radio("Sắp xếp", list(sort_map.keys()), key="ops_sort", horizontal=True)
-        sort_by = sort_map[sort_label]
+    sort_map = {"Phần trăm thay đổi lợi nhuận": "delta_profit_pct", "Thay đổi lợi nhuận tuyệt đối": "delta_profit"}
+    sort_label = st.sidebar.radio("Sắp xếp", list(sort_map.keys()), key="ops_sort")
+    sort_by = sort_map[sort_label]
 
     # render_assumption_box(
     #     "Lợi nhuận kịch bản được tính toán từ phân tích đối ngẫu (counterfactual). "
@@ -99,7 +96,7 @@ def render(filters: dict) -> None:
     # =========================================================
     best_row = engine.best_action(selected_seg)
 
-    render_section_header(f"Kịch Bản Tốt Nhất — {selected_seg}", "")
+    # render_section_header(f"Kịch Bản Tốt Nhất — {selected_seg}", "")
     if best_row is not None:
         k1, k2, k3, k4 = st.columns(4)
         with k1:
@@ -128,6 +125,7 @@ def render(filters: dict) -> None:
 
     with col_l:
         # render_section_header(f"% Thay Đổi Lợi Nhuận Theo Hành Động — {selected_seg}", "")
+        bar_height = max(300, len(cf_filtered) * 35 + 80)
         st.plotly_chart(
             charts.chart_delta_profit_bar(cf_filtered, selected_segment=None),
             use_container_width=True, config={"displayModeBar": False},
@@ -138,7 +136,7 @@ def render(filters: dict) -> None:
         wf_row = engine.waterfall_inputs(selected_seg, action=action_filter)
         if wf_row is not None:
             st.plotly_chart(
-                charts.chart_ops_waterfall(wf_row),
+                charts.chart_ops_waterfall(wf_row, height=bar_height),
                 use_container_width=True, config={"displayModeBar": False},
             )
         else:
@@ -239,7 +237,7 @@ def render(filters: dict) -> None:
                 "baseline_profit": "Lợi nhuận cơ sở",
                 "scenario_profit": "Lợi nhuận kịch bản",
                 "delta_profit": "Thay đổi lợi nhuận",
-                "delta_profit_pct": "% Thay đổi LN",
+                "delta_profit_pct": "% Thay đổi Lợi nhuận",
                 "delta_revenue": "Thay đổi doanh thu",
                 "delta_cost": "Thay đổi chi phí",
                 "action": "Hành động",
@@ -249,7 +247,7 @@ def render(filters: dict) -> None:
                 "Lợi nhuận cơ sở": "₫{:,.0f}",
                 "Lợi nhuận kịch bản": "₫{:,.0f}",
                 "Thay đổi lợi nhuận":    "₫{:,.0f}",
-                "% Thay đổi LN": "{:+.2f}%",
+                "% Thay đổi Lợi nhuận": "{:+.2f}%",
                 "Thay đổi doanh thu":   "₫{:,.0f}",
                 "Thay đổi chi phí":      "₫{:,.0f}",
             }),
@@ -287,8 +285,8 @@ def render(filters: dict) -> None:
     # =========================================================
     # INSIGHTS
     # =========================================================
-    render_section_header("Thông Tin Tự Động", "")
-    _render_ops_insights(cf_filtered, selected_seg, best_row)
+    # render_section_header("Thông Tin Tự Động", "")
+    # _render_ops_insights(cf_filtered, selected_seg, best_row)
 
 
 def _render_ops_insights(cf: pd.DataFrame, segment: str, best_row) -> None:

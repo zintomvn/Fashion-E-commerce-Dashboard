@@ -62,23 +62,20 @@ def render(filters: dict) -> None:
     #     "Điểm biến nhiễu (Confounder score) = |corr(f, T)| × |corr(f, Y)|."
     # )
 
-    render_divider()
+    # render_divider()
 
 
-    col_c1, col_c2, col_c3 = st.columns(3)
+    st.sidebar.markdown("### Điều Khiển Phân Tích")
+    
+    available_targets = [t for t in TARGET_OPTIONS if t in uplift_raw.columns]
+    target_y = st.sidebar.selectbox("Biến mục tiêu (y)", available_targets, key="diag_target")
 
-    with col_c1:
-        available_targets = [t for t in TARGET_OPTIONS if t in uplift_raw.columns]
-        target_y = st.selectbox("Biến mục tiêu (y)", available_targets, key="diag_target")
+    x_candidates = [c for c in NUMERIC_FEATURE_CANDIDATES if c in uplift_raw.columns]
+    x_axis = st.sidebar.selectbox("Trục X (biểu đồ phân tán)", x_candidates, key="diag_xaxis")
 
-    with col_c2:
-        x_candidates = [c for c in NUMERIC_FEATURE_CANDIDATES if c in uplift_raw.columns]
-        x_axis = st.selectbox("Trục X (biểu đồ phân tán)", x_candidates, key="diag_xaxis")
-
-    with col_c3:
-        treatment_col = "True_T" if "True_T" in uplift_raw.columns else None
-        outcome_col   = "True_Y" if "True_Y" in uplift_raw.columns else None
-        confounder_k  = st.slider("Top-K Biến nhiễu", 5, 20, 10, key="diag_confk")
+    treatment_col = "True_T" if "True_T" in uplift_raw.columns else None
+    outcome_col   = "True_Y" if "True_Y" in uplift_raw.columns else None
+    confounder_k  = st.sidebar.slider("Top-K Biến nhiễu", 5, 20, 10, key="diag_confk")
 
     # =========================================================
     # APPLY FILTERS
@@ -102,18 +99,25 @@ def render(filters: dict) -> None:
     # render_section_header(f"Chỉ Số Đánh Giá Mô Hình Thay Thế — Mục tiêu: {target_y}", "")
 
     with st.spinner("Fitting surrogate model…"):
-        if target_y == "True_Y" and treatment_col and outcome_col:
+        is_classification = (target_y == "True_Y")
+        if is_classification and treatment_col and outcome_col:
             # Use observed P_hat for True_Y (binary)
             sub = df[[treatment_col, "P_Y_given_Promo", "P_Y_given_NoPromo", outcome_col]].dropna()
             if not sub.empty:
                 sub["p_hat"] = sub[treatment_col] * sub["P_Y_given_Promo"] + \
                                (1 - sub[treatment_col]) * sub["P_Y_given_NoPromo"]
-                from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
-                import math
-                r2   = round(r2_score(sub[outcome_col], sub["p_hat"]), 4)
-                mae  = round(mean_absolute_error(sub[outcome_col], sub["p_hat"]), 4)
-                rmse = round(math.sqrt(mean_squared_error(sub[outcome_col], sub["p_hat"])), 4)
-                metrics = {"r2": r2, "mae": mae, "rmse": rmse}
+                from sklearn.metrics import roc_auc_score, accuracy_score, log_loss, confusion_matrix
+                y_true = sub[outcome_col]
+                y_prob = sub["p_hat"]
+                y_pred = (y_prob >= 0.5).astype(int)
+                try:
+                    auc_score = round(roc_auc_score(y_true, y_prob), 4)
+                except Exception:
+                    auc_score = 0.5
+                acc = round(accuracy_score(y_true, y_pred), 4)
+                ll = round(log_loss(y_true, y_prob), 4)
+                cm = confusion_matrix(y_true, y_pred)
+                metrics = {"auc": auc_score, "accuracy": acc, "log_loss": ll, "cm": cm}
             else:
                 metrics = {}
         else:
@@ -121,13 +125,26 @@ def render(filters: dict) -> None:
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
-        r2_val = metrics.get("r2", None)
-        render_metric_card("R²", f"{r2_val:.4f}" if r2_val is not None else "N/A",
-                           delta_positive=(r2_val or 0) > 0.5, icon="", accent="#4285F4")
+        if is_classification:
+            auc_val = metrics.get("auc", None)
+            render_metric_card("ROC AUC", f"{auc_val:.4f}" if auc_val is not None else "N/A",
+                               delta_positive=(auc_val or 0) > 0.7, icon="", accent="#4285F4")
+        else:
+            r2_val = metrics.get("r2", None)
+            render_metric_card("R²", f"{r2_val:.4f}" if r2_val is not None else "N/A",
+                               delta_positive=(r2_val or 0) > 0.5, icon="", accent="#4285F4")
     with k2:
-        render_metric_card("MAE", f"{metrics.get('mae', 'N/A')}", icon="", accent="#FBBC05")
+        if is_classification:
+            acc_val = metrics.get("accuracy", None)
+            render_metric_card("Accuracy", f"{acc_val:.4f}" if acc_val is not None else "N/A", icon="", accent="#FBBC05")
+        else:
+            render_metric_card("MAE", f"{metrics.get('mae', 'N/A')}", icon="", accent="#FBBC05")
     with k3:
-        render_metric_card("RMSE", f"{metrics.get('rmse', 'N/A')}", icon="", accent="#EA4335")
+        if is_classification:
+            ll_val = metrics.get("log_loss", None)
+            render_metric_card("Log Loss", f"{ll_val:.4f}" if ll_val is not None else "N/A", icon="", accent="#EA4335")
+        else:
+            render_metric_card("RMSE", f"{metrics.get('rmse', 'N/A')}", icon="", accent="#EA4335")
     with k4:
         render_metric_card("Cỡ Mẫu", f"{n_total:,}", icon="", accent="#34A853")
 
@@ -140,23 +157,37 @@ def render(filters: dict) -> None:
     # =========================================================
     col_sc, col_dist = st.columns([6, 4])
     with col_sc:
-        # render_section_header(f"Biểu đồ phân tán: {x_axis} và {target_y}", "")
         sample_scatter = df[[x_axis, target_y]].dropna().sample(
             min(3000, len(df)), random_state=42
         )
-        st.plotly_chart(
-            charts.chart_scatter_regression(sample_scatter, x_axis, target_y),
-            use_container_width=True, config={"displayModeBar": False},
-        )
+        if is_classification:
+            st.plotly_chart(
+                charts.chart_box_by_class(sample_scatter, x_axis, target_y),
+                use_container_width=True, config={"displayModeBar": False},
+            )
+        else:
+            st.plotly_chart(
+                charts.chart_scatter_regression(sample_scatter, x_axis, target_y),
+                use_container_width=True, config={"displayModeBar": False},
+            )
 
     with col_dist:
-        # render_section_header(f"Phân phối: {target_y}", "")
-        st.plotly_chart(
-            charts.chart_distribution(df, target_y),
-            use_container_width=True, config={"displayModeBar": False},
-        )
+        if is_classification:
+            cm = metrics.get("cm")
+            if cm is not None:
+                st.plotly_chart(
+                    charts.chart_confusion_matrix(cm),
+                    use_container_width=True, config={"displayModeBar": False},
+                )
+            else:
+                st.info("Chưa có dữ liệu Confusion Matrix")
+        else:
+            st.plotly_chart(
+                charts.chart_distribution(df, target_y),
+                use_container_width=True, config={"displayModeBar": False},
+            )
 
-    # render_divider()
+    render_divider()
 
     # =========================================================
     # CORRELATION HEATMAP
@@ -200,7 +231,7 @@ def render(filters: dict) -> None:
                 confounder_df.style.format({
                     "assoc_T": "{:.4f}", "assoc_Y": "{:.4f}", "confounder_score": "{:.5f}"
                 }),
-                use_container_width=True, height=400,
+                use_container_width=True, hide_index=True,
             )
         # Insight
         if not confounder_df.empty:
@@ -208,7 +239,7 @@ def render(filters: dict) -> None:
             st.markdown(f"""
             <div style='background:rgba(66, 133, 244, 0.08);border:1px solid rgba(66, 133, 244, 0.2);
             border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:black;margin-top:0.5rem'>
-            Biến <strong>{top_conf}</strong> có điểm nhiễu (confounder score) cao nhất —
+            Biến <strong>{top_conf}</strong> có confounder score cao nhất —
             nó tương quan với cả việc nhận khuyến mãi và quyết định mua hàng. 
             Có thể làm sai lệch kết quả A/B test, cần kiểm soát biến này trong phân tích nhân quả.
             </div>
@@ -242,7 +273,7 @@ def render(filters: dict) -> None:
             with col_sh2:
                 st.dataframe(
                     shap_df.head(15).style.format({"mean_abs_shap": "{:.5f}"}),
-                    use_container_width=True, height=430,
+                    use_container_width=True, hide_index=True, height=480
                 )
     # else:
         # shap_info.info("Bấm nút bên trên để tính toán giá trị SHAP")
@@ -289,17 +320,27 @@ def render(filters: dict) -> None:
 def _render_diag_insights(metrics: dict, conf_df: pd.DataFrame) -> None:
     col1, col2 = st.columns(2)
     with col1:
-        r2 = metrics.get("r2")
-        if r2 is not None:
-            if r2 > 0.7:
-                render_insight(f"R² của mô hình = <strong>{r2:.3f}</strong> — mức độ phù hợp cao. "
-                               "Dự báo Uplift đáng tin cậy.", "success")
-            elif r2 > 0.4:
-                render_insight(f"R² của mô hình = <strong>{r2:.3f}</strong> — mức độ phù hợp trung bình. "
-                               "Chỉ nên dùng kết quả AI để tham khảo định hướng, không dùng như một dự báo chính xác tuyệt đối.", "warning")
-            else:
-                render_insight(f"R² của mô hình = <strong>{r2:.3f}</strong> — mức độ phù hợp yếu. "
-                               "Cần xem xét lại việc kỹ thuật đặc trưng (Feature Engineering) hoặc huấn luyện lại mô hình.", "danger")
+        if "auc" in metrics:
+            auc = metrics.get("auc")
+            if auc is not None:
+                if auc > 0.75:
+                    render_insight(f"ROC AUC = <strong>{auc:.3f}</strong> — Mô hình phân loại có khả năng phân biệt tốt.", "success")
+                elif auc > 0.6:
+                    render_insight(f"ROC AUC = <strong>{auc:.3f}</strong> — Khả năng phân loại trung bình.", "warning")
+                else:
+                    render_insight(f"ROC AUC = <strong>{auc:.3f}</strong> — Phân biệt yếu, gần giống ngẫu nhiên.", "danger")
+        else:
+            r2 = metrics.get("r2")
+            if r2 is not None:
+                if r2 > 0.7:
+                    render_insight(f"R² của mô hình = <strong>{r2:.3f}</strong> — mức độ phù hợp cao. "
+                                   "Dự báo Uplift đáng tin cậy.", "success")
+                elif r2 > 0.4:
+                    render_insight(f"R² của mô hình = <strong>{r2:.3f}</strong> — mức độ phù hợp trung bình. "
+                                   "Chỉ nên dùng kết quả AI để tham khảo định hướng, không dùng như một dự báo chính xác tuyệt đối.", "warning")
+                else:
+                    render_insight(f"R² của mô hình = <strong>{r2:.3f}</strong> — mức độ phù hợp yếu. "
+                                   "Cần xem xét lại việc kỹ thuật đặc trưng (Feature Engineering) hoặc huấn luyện lại mô hình.", "danger")
     with col2:
         if not conf_df.empty:
             render_insight(

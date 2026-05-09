@@ -51,38 +51,48 @@ def render(filters: dict) -> None:
     # =========================================================
     # SIDEBAR PROMO CONTROLS (inline in page, not global sidebar)
     # =========================================================
-    # render_section_header("Cấu Hình Khuyến Mãi", "")
+    # st.markdown("### Cấu Hình Khuyến Mãi")
+    
+    st.sidebar.markdown("### Cấu Hình Khuyến Mãi")
+    
+    # 1. Targeting
+    st.sidebar.markdown("**1. Khách hàng mục tiêu**")
+    avail_segments = sorted(uplift_raw["customer_segment"].dropna().unique().tolist()) if "customer_segment" in uplift_raw else []
+    selected_segments = st.sidebar.multiselect("Chọn Segment(s)", options=avail_segments, default=[], key="promo_segments")
+    
+    avail_cats = sorted(uplift_raw["category"].dropna().unique().tolist()) if "category" in uplift_raw else []
+    selected_cats = st.sidebar.multiselect("Chọn Category/Segment", options=avail_cats, default=[], key="promo_cats")
+    
+    target_mode = st.sidebar.radio("Cắt theo độ lớn Uplift", ["Top-N", "Ngưỡng Uplift"], horizontal=True, key="promo_target_mode")
+    if target_mode == "Top-N":
+        top_n = st.sidebar.number_input("Top-N khách hàng", min_value=10, max_value=100000, value=1000, step=100, key="promo_topn")
+        uplift_thr = None
+    else:
+        top_n = None
+        uplift_thr = st.sidebar.slider("Ngưỡng Uplift (Uplift threshold)", min_value=-1.0, max_value=1.0, value=0.0, step=0.01, key="promo_thr")
+            
+    # 2. Promo Policy
+    st.sidebar.markdown("**2. Chính sách Khuyến mãi**")
+    promo_type_map = {"percentage": "Phần trăm", "fixed": "Giá trị cố định"}
+    promo_type = st.sidebar.selectbox("Loại khuyến mãi", ["percentage", "fixed"], format_func=lambda x: promo_type_map[x], key="promo_type")
+    
+    max_fixed = float(uplift_raw["price"].max() * 0.3) if ("price" in uplift_raw and not uplift_raw.empty) else 100000.0
+    max_fixed = max(max_fixed, 100000.0)
+    max_disc = 50.0 if promo_type == "percentage" else max_fixed
+    default_val = 10.0 if promo_type == "percentage" else 50000.0
+    
+    discount_value = st.sidebar.number_input(
+        "Mức giảm giá" + (" (%)" if promo_type == "percentage" else " (₫)"),
+        min_value=0.0, max_value=max_disc,
+        value=default_val,
+        step=1.0 if promo_type == "percentage" else 10000.0,
+        key="promo_discount",
+    )
+    min_order_value = st.sidebar.number_input("Min Order Value", min_value=0, value=0, step=50000, key="promo_min_order")
+    
+    stackable_flag = st.sidebar.checkbox("Cho phép cộng dồn", value=False, key="promo_stackable")
+    penalise_returns = st.sidebar.checkbox("Loại nhóm có tỷ lệ rời bỏ cao", value=True, key="promo_penalise")
 
-    col_c1, col_c2, col_c3, col_c4 = st.columns(4)
-    with col_c1:
-        promo_type_map = {"percentage": "Phần trăm", "fixed": "Giá trị cố định"}
-        promo_type = st.selectbox("Loại khuyến mãi", ["percentage", "fixed"], format_func=lambda x: promo_type_map[x], key="promo_type")
-    with col_c2:
-        max_disc = 50.0 if promo_type == "percentage" else float(uplift_raw["price"].max() * 0.3)
-        discount_value = st.slider(
-            "Mức giảm giá" + (" (%)" if promo_type == "percentage" else " (₫ fixed)"),
-            min_value=0.0, max_value=max_disc,
-            value=10.0 if promo_type == "percentage" else 50_000.0,
-            step=1.0 if promo_type == "percentage" else 10_000.0,
-            key="promo_discount",
-        )
-    with col_c3:
-        penalise_returns = st.checkbox("Phạt nhóm hoàn hàng cao", value=True, key="promo_penalise")
-    with col_c4:
-        target_mode = st.radio("Chế độ nhắm mục tiêu", ["Top-N", "Ngưỡng Uplift"], key="promo_target_mode")
-
-    col_d1, col_d2 = st.columns([1, 3])
-    with col_d1:
-        if target_mode == "Top-N":
-            top_n = st.number_input("Top-N khách hàng", min_value=10, max_value=50_000,
-                                     value=1000, step=100, key="promo_topn")
-            uplift_thr = None
-        else:
-            top_n = None
-            uplift_thr = st.slider(
-                "Ngưỡng Uplift", min_value=-1.0, max_value=1.0,
-                value=0.0, step=0.01, key="promo_thr",
-            )
 
     # render_assumption_box(
     #     "Xác suất mua hàng P(Y|Promo) và P(Y|NoPromo) được giữ nguyên từ mô hình T-learner. "
@@ -97,11 +107,19 @@ def render(filters: dict) -> None:
     # =========================================================
     uplift = uplift_raw.copy()
 
-    # Global segment filter
+    # Local segment filter
+    if selected_segments and "customer_segment" in uplift.columns:
+        uplift = uplift[uplift["customer_segment"].isin(selected_segments)]
+
+    # Local category filter
+    if selected_cats and "category" in uplift.columns:
+        uplift = uplift[uplift["category"].isin(selected_cats)]
+
+    # Global segment filter (fallback/intersection)
     if filters.get("segments") and "customer_segment" in uplift.columns:
         uplift = uplift[uplift["customer_segment"].isin(filters["segments"])]
 
-    # Global category filter
+    # Global category filter (fallback/intersection)
     if filters.get("categories") and "category" in uplift.columns:
         uplift = uplift[uplift["category"].isin(filters["categories"])]
 
@@ -180,7 +198,7 @@ def render(filters: dict) -> None:
             use_container_width=True, config={"displayModeBar": False},
         )
 
-    # render_divider()
+    render_divider()
 
     # =========================================================
     # CHARTS ROW 2
@@ -212,41 +230,41 @@ def render(filters: dict) -> None:
     # =========================================================
     # TARGETING TABLE
     # =========================================================
-    # render_section_header("Danh Sách Khách Hàng Mục Tiêu", "")
+    render_section_header("Danh Sách Khách Hàng Mục Tiêu (500 người)", "")
 
-    # display_cols = [c for c in [
-    #     "customer_id", "customer_segment", "category", "acquisition_channel",
-    #     "price", "promo_price", "cogs",
-    #     "P_Y_given_Promo", "P_Y_given_NoPromo", "Uplift_Score",
-    #     "expected_base", "expected_promo", "expected_uplift_profit",
-    #     "return_rate",
-    # ] if c in computed.columns]
+    display_cols = [c for c in [
+        "customer_id", "customer_segment", "category", "acquisition_channel",
+        "price", "promo_price", "cogs",
+        "P_Y_given_Promo", "P_Y_given_NoPromo", "Uplift_Score",
+        "expected_base", "expected_promo", "expected_uplift_profit",
+        "return_rate",
+    ] if c in computed.columns]
 
-    # table_df = computed[display_cols].head(500).copy()
-    # # Format numeric cols
-    # for col in ["price", "promo_price", "cogs", "expected_base", "expected_promo", "expected_uplift_profit"]:
-    #     if col in table_df.columns:
-    #         table_df[col] = table_df[col].round(0)
+    table_df = computed[display_cols].head(500).copy().sort_values(by="Uplift_Score", ascending=False)
+    # Format numeric cols
+    for col in ["price", "promo_price", "cogs", "expected_base", "expected_promo", "expected_uplift_profit"]:
+        if col in table_df.columns:
+            table_df[col] = table_df[col].round(0)
 
-    # st.dataframe(table_df, use_container_width=True, height=380)
+    st.dataframe(table_df, use_container_width=True, height=380)
 
-    # # Download
-    # csv_bytes = computed[display_cols].to_csv(index=False).encode("utf-8")
-    # st.download_button(
-    #     label="Tải xuống Danh sách mục tiêu (CSV)",
-    #     data=csv_bytes,
-    #     file_name="promo_targeting_list.csv",
-    #     mime="text/csv",
-    #     key="promo_download",
-    # )
+    # Download
+    csv_bytes = computed[display_cols].to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="Tải xuống Danh sách mục tiêu (CSV)",
+        data=csv_bytes,
+        file_name="promo_targeting_list.csv",
+        mime="text/csv",
+        key="promo_download",
+    )
 
     # render_divider()
 
     # =========================================================
     # INSIGHTS
     # =========================================================
-    render_section_header("Thông Tin Tự Động", "")
-    _render_promo_insights(stats, computed)
+    # render_section_header("Thông Tin Tự Động", "")
+    # _render_promo_insights(stats, computed)
 
 
 def _render_promo_insights(stats: dict, computed: pd.DataFrame) -> None:

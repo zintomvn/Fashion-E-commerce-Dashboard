@@ -28,8 +28,8 @@ header { background: transparent !important; }
 
 /* === Metric Cards === */
 .metric-card {
-    background: linear-gradient(135deg, #1E2130 0%, #252A3D 100%);
-    border: 1px solid #2D3250;
+    background: #FFFFFF;
+    border: 1px solid #E0E0E0;
     border-radius: 12px;
     padding: 1.1rem 1.3rem;
     position: relative;
@@ -53,13 +53,13 @@ header { background: transparent !important; }
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #8B90A7;
+    color: #5F6368;
     margin-bottom: 0.35rem;
 }
 .metric-value {
     font-size: 1.65rem;
     font-weight: 700;
-    color: #E8EAF0;
+    color: #202124;
     line-height: 1.1;
 }
 .metric-delta {
@@ -92,7 +92,7 @@ header { background: transparent !important; }
 .section-header h3 {
     font-size: 1.00rem;
     font-weight: 700;
-    color: #333333;
+    color: #202124;
     margin: 0;
     letter-spacing: 0.02em;
 }
@@ -101,7 +101,7 @@ header { background: transparent !important; }
 .page-title {
     font-size: 1.6rem;
     font-weight: 700;
-    background: linear-gradient(90deg, #6C63FF, #F5A623);
+    background: linear-gradient(90deg, #4285F4, #24C1E0);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -131,14 +131,14 @@ header { background: transparent !important; }
 
 /* === Sidebar === */
 [data-testid="stSidebar"] {
-    background: #0D1021 !important;
-    border-right: 1px solid #1E2130 !important;
+    background: #F8F9FA !important;
+    border-right: 1px solid #E0E0E0 !important;
 }
 [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stRadio label, [data-testid="stSidebar"] .stMarkdown p {
-    color: #FFFFFF !important;
+    color: #202124 !important;
 }
 [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label p {
-    color: #FFFFFF !important;
+    color: #202124 !important;
     font-size: 0.9rem !important;
 }
 [data-testid="stSidebar"] .stMultiSelect [data-baseweb="select"] > div {
@@ -147,7 +147,7 @@ header { background: transparent !important; }
 }
 [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
     font-weight: 800 !important;
-    color: #FFFFFF !important;
+    color: #202124 !important;
     margin-bottom: 0.2rem;
 }
 [data-testid="stSidebar"] .stSelectbox label,
@@ -156,7 +156,7 @@ header { background: transparent !important; }
 [data-testid="stSidebar"] .stDateInput label {
     font-size: 0.7rem !important;
     font-weight: 800 !important;
-    color: #FFFFFF !important;
+    color: #202124 !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -164,7 +164,7 @@ header { background: transparent !important; }
     margin-bottom: -0.8rem;
 }
 button[kind="header"] {
-    color: #FFFFFF !important;
+    color: #202124 !important;
 }
 .sidebar-brand {
     text-align: center;
@@ -175,7 +175,7 @@ button[kind="header"] {
 .sidebar-brand h2 {
     font-size: 1.1rem;
     font-weight: 700;
-    background: linear-gradient(90deg, #6C63FF, #F5A623);
+    background: linear-gradient(90deg, #4285F4, #24C1E0);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -359,55 +359,6 @@ def sidebar_global_filters(
     else:
         filters["date_start"] = None
         filters["date_end"]   = None
-
-    # st.sidebar.markdown("---")
-
-    # --- Customer segment ---
-    seg_options = []
-    if uplift_df is not None and not uplift_df.empty and "customer_segment" in uplift_df.columns:
-        seg_options = sorted(uplift_df["customer_segment"].dropna().unique().tolist())
-    elif orders_df is not None and not orders_df.empty and "customer_segment" in orders_df.columns:
-        seg_options = sorted(orders_df["customer_segment"].dropna().unique().tolist())
-
-    if seg_options:
-        filters["segments"] = st.sidebar.multiselect(
-            "Phân khúc khách hàng",
-            options=seg_options,
-            default=seg_options,
-            key="global_segments",
-        )
-    else:
-        filters["segments"] = []
-
-    # --- Region ---
-    region_options = []
-    if orders_df is not None and not orders_df.empty and "region" in orders_df.columns:
-        region_options = sorted(orders_df["region"].dropna().unique().tolist())
-
-    if region_options:
-        filters["regions"] = st.sidebar.multiselect(
-            "Khu vực",
-            options=region_options,
-            default=region_options,
-            key="global_regions",
-        )
-    else:
-        filters["regions"] = []
-
-    # --- Category ---
-    cat_options = []
-    if uplift_df is not None and not uplift_df.empty and "category" in uplift_df.columns:
-        cat_options = sorted(uplift_df["category"].dropna().unique().tolist())
-
-    if cat_options:
-        filters["categories"] = st.sidebar.multiselect(
-            "Danh mục sản phẩm",
-            options=cat_options,
-            default=cat_options,
-            key="global_categories",
-        )
-    else:
-        filters["categories"] = []
 
     st.sidebar.markdown("---")
     # st.sidebar.markdown(

@@ -196,9 +196,16 @@ def render(filters: dict) -> None:
         )
         orders = orders[mask_o]
 
+    st.sidebar.markdown("### Bộ Lọc Trang Tổng Quan")
+    region_options = sorted(orders_full["region"].dropna().unique().tolist()) if not orders_full.empty and "region" in orders_full.columns else []
+    if region_options:
+        selected_regions = st.sidebar.multiselect("Khu vực", options=region_options, default=region_options, key="ov_regions")
+    else:
+        selected_regions = []
+
     # Filter by region
-    if filters.get("regions") and not orders.empty and "region" in orders.columns:
-        orders = orders[orders["region"].isin(filters["regions"])]
+    if selected_regions and not orders.empty and "region" in orders.columns:
+        orders = orders[orders["region"].isin(selected_regions)]
 
     
     # Biểu đồ trạng thái đơn hàng theo tháng
@@ -240,35 +247,35 @@ def render(filters: dict) -> None:
     # =========================================================
     # render_section_header("Danh Mục Sản Phẩm — Ma Trận BCG", "")
     col_p, col_q = st.columns([7, 3])
-    with col_p:
-        st.plotly_chart(
-            charts.chart_bcg_portfolio(portfolio),
-            use_container_width=True,
-            config={"displayModeBar": False},
-        )
-    with col_q:
-        render_section_header("Tỷ trọng danh mục", "")
-        if not portfolio.empty and "product_segment_pv" in portfolio.columns:
-            seg_counts = portfolio["product_segment_pv"].value_counts().reset_index()
-            seg_counts.columns = ["Segment", "Count"]
-            import plotly.express as px
-            color_map = {
-                "Stars": "#F5A623", "Cash Cows": "#2ECC71",
-                "Dogs": "#E74C3C", "Question Marks": "#6C63FF",
-            }
-            fig_pie = px.pie(
-                seg_counts, values="Count", names="Segment",
-                color="Segment", color_discrete_map=color_map,
-                hole=0.5,
-            )
-            fig_pie.update_layout(
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(family="Inter, sans-serif", color="#E8EAF0"),
-                showlegend=True, height=300,
-                margin=dict(l=0, r=0, t=20, b=0),
-            )
-            st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
+    # with col_p:
+    st.plotly_chart(
+        charts.chart_bcg_portfolio(portfolio),
+        use_container_width=True,
+        config={"displayModeBar": False},
+    )
+    # with col_q:
+    #     render_section_header("Tỷ trọng danh mục", "")
+    #     if not portfolio.empty and "product_segment_pv" in portfolio.columns:
+    #         seg_counts = portfolio["product_segment_pv"].value_counts().reset_index()
+    #         seg_counts.columns = ["Segment", "Count"]
+    #         import plotly.express as px
+    #         color_map = {
+    #             "Stars": "#F5A623", "Cash Cows": "#2ECC71",
+    #             "Dogs": "#E74C3C", "Question Marks": "#6C63FF",
+    #         }
+    #         fig_pie = px.pie(
+    #             seg_counts, values="Count", names="Segment",
+    #             color="Segment", color_discrete_map=color_map,
+    #             hole=0.5,
+    #         )
+    #         fig_pie.update_layout(
+    #             paper_bgcolor="rgba(0,0,0,0)",
+    #             plot_bgcolor="rgba(0,0,0,0)",
+    #             font=dict(family="Inter, sans-serif", color="#E8EAF0"),
+    #             showlegend=True, height=300,
+    #             margin=dict(l=0, r=0, t=20, b=0),
+    #         )
+    #         st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
 
     # render_divider()
 
