@@ -147,7 +147,8 @@ def chart_revenue_trend(
     _apply_theme(fig, "Doanh Thu & Giá Vốn — Thực Tế + Dự Báo")
     fig.update_layout(
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(b=80),
         yaxis=dict(tickformat=",.0f"),
         height=420,
     )
@@ -176,7 +177,8 @@ def chart_gross_profit(sales: pd.DataFrame) -> go.Figure:
     fig.update_layout(
         height=300,
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(b=80),
         yaxis=dict(tickformat=",.0f")
     )
     return fig
@@ -204,7 +206,8 @@ def chart_order_status_monthly(orders: pd.DataFrame) -> go.Figure:
     _apply_theme(fig, "Phân Phối Trạng Thái Đơn Hàng (Theo Tháng)")
     fig.update_layout(
         barmode="stack", height=340, xaxis_tickangle=-30,
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1)
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(b=80)
     )
     return fig
 
@@ -254,7 +257,8 @@ def chart_bcg_portfolio(portfolio: pd.DataFrame) -> go.Figure:
     _apply_theme(fig, "Danh Mục Sản Phẩm — Ma Trận BCG")
     fig.update_layout(
         height=420, legend_title_text="Phân khúc",
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1)
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(b=80)
     )
     return fig
 

@@ -100,53 +100,52 @@ def render(filters: dict) -> None:
 
     with st.spinner("Fitting surrogate model…"):
         is_classification = (target_y == "True_Y")
-        if is_classification and treatment_col and outcome_col:
-            # Use observed P_hat for True_Y (binary)
-            sub = df[[treatment_col, "P_Y_given_Promo", "P_Y_given_NoPromo", outcome_col]].dropna()
-            if not sub.empty:
-                sub["p_hat"] = sub[treatment_col] * sub["P_Y_given_Promo"] + \
-                               (1 - sub[treatment_col]) * sub["P_Y_given_NoPromo"]
-                from sklearn.metrics import roc_auc_score, accuracy_score, log_loss, confusion_matrix
-                y_true = sub[outcome_col]
-                y_prob = sub["p_hat"]
-                y_pred = (y_prob >= 0.5).astype(int)
-                try:
-                    auc_score = round(roc_auc_score(y_true, y_prob), 4)
-                except Exception:
-                    auc_score = 0.5
-                acc = round(accuracy_score(y_true, y_pred), 4)
-                ll = round(log_loss(y_true, y_prob), 4)
-                cm = confusion_matrix(y_true, y_pred)
-                metrics = {"auc": auc_score, "accuracy": acc, "log_loss": ll, "cm": cm}
-            else:
-                metrics = {}
-        else:
-            metrics = compute_surrogate_metrics(df, target_col=target_y)
+        # FIX lỗi 2: Route ALL targets through compute_surrogate_metrics which now
+        # handles class-balanced training + Youden's J threshold for binary targets,
+        # and excludes promo_order_rate (treatment leakage) for True_Y target.
+        metrics = compute_surrogate_metrics(df, target_col=target_y)
 
     k1, k2, k3, k4 = st.columns(4)
     with k1:
         if is_classification:
-            auc_val = metrics.get("auc", None)
+            auc_val = metrics.get("auc")
             render_metric_card("ROC AUC", f"{auc_val:.4f}" if auc_val is not None else "N/A",
                                delta_positive=(auc_val or 0) > 0.7, icon="", accent="#4285F4")
         else:
-            r2_val = metrics.get("r2", None)
+            r2_val = metrics.get("r2")
             render_metric_card("R²", f"{r2_val:.4f}" if r2_val is not None else "N/A",
                                delta_positive=(r2_val or 0) > 0.5, icon="", accent="#4285F4")
     with k2:
         if is_classification:
-            acc_val = metrics.get("accuracy", None)
-            render_metric_card("Accuracy", f"{acc_val:.4f}" if acc_val is not None else "N/A", icon="", accent="#FBBC05")
+            bal_acc = metrics.get("balanced_acc")
+            render_metric_card(
+                "Balanced Acc",
+                f"{bal_acc:.4f}" if bal_acc is not None else "N/A",
+                delta_positive=(bal_acc or 0) > 0.65,
+                icon="", accent="#FBBC05",
+            )
         else:
             render_metric_card("MAE", f"{metrics.get('mae', 'N/A')}", icon="", accent="#FBBC05")
     with k3:
         if is_classification:
-            ll_val = metrics.get("log_loss", None)
-            render_metric_card("Log Loss", f"{ll_val:.4f}" if ll_val is not None else "N/A", icon="", accent="#EA4335")
+            ll_val = metrics.get("log_loss")
+            render_metric_card(
+                "Log Loss",
+                f"{ll_val:.4f}" if ll_val is not None else "N/A",
+                icon="", accent="#EA4335",
+            )
         else:
             render_metric_card("RMSE", f"{metrics.get('rmse', 'N/A')}", icon="", accent="#EA4335")
     with k4:
-        render_metric_card("Cỡ Mẫu", f"{n_total:,}", icon="", accent="#34A853")
+        if is_classification:
+            thr = metrics.get("optimal_threshold")
+            render_metric_card(
+                "Optimal Threshold",
+                f"{thr:.4f}" if thr is not None else "N/A",
+                icon="", accent="#34A853",
+            )
+        else:
+            render_metric_card("Cỡ Mẫu", f"{n_total:,}", icon="", accent="#34A853")
 
     render_divider()
 
@@ -160,6 +159,7 @@ def render(filters: dict) -> None:
         sample_scatter = df[[x_axis, target_y]].dropna().sample(
             min(3000, len(df)), random_state=42
         )
+        # For binary target show box-by-class; for continuous show scatter+regression
         if is_classification:
             st.plotly_chart(
                 charts.chart_box_by_class(sample_scatter, x_axis, target_y),

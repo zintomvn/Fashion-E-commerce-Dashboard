@@ -196,16 +196,6 @@ def render(filters: dict) -> None:
         )
         orders = orders[mask_o]
 
-    st.sidebar.markdown("### Bộ Lọc Trang Tổng Quan")
-    region_options = sorted(orders_full["region"].dropna().unique().tolist()) if not orders_full.empty and "region" in orders_full.columns else []
-    if region_options:
-        selected_regions = st.sidebar.multiselect("Khu vực", options=region_options, default=region_options, key="ov_regions")
-    else:
-        selected_regions = []
-
-    # Filter by region
-    if selected_regions and not orders.empty and "region" in orders.columns:
-        orders = orders[orders["region"].isin(selected_regions)]
 
     
     # Biểu đồ trạng thái đơn hàng theo tháng
