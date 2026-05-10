@@ -66,9 +66,17 @@ def render(filters: dict) -> None:
 
 
     st.sidebar.markdown("### Điều Khiển Phân Tích")
+    TARGET_MAPPING = {
+        "Uplift_Score": "Điểm Uplift (Uplift Score)",
+        "gross_profit_historical": "Lợi nhuận gộp lịch sử (Gross Profit Historical)",
+        "True_Y": "Trạng thái mua hàng (True_Y)"
+    }
     
     available_targets = [t for t in TARGET_OPTIONS if t in uplift_raw.columns]
-    target_y = st.sidebar.selectbox("Biến mục tiêu (y)", available_targets, key="diag_target")
+    target_options_translated = [TARGET_MAPPING.get(t, t) for t in available_targets]
+    target_y_name = st.sidebar.selectbox("Biến mục tiêu (y)", target_options_translated, key="diag_target")
+    # Reverse map:
+    target_y = [k for k in available_targets if TARGET_MAPPING.get(k, k) == target_y_name][0]
 
     x_candidates = [c for c in NUMERIC_FEATURE_CANDIDATES if c in uplift_raw.columns]
     x_axis = st.sidebar.selectbox("Trục X (biểu đồ phân tán)", x_candidates, key="diag_xaxis")
@@ -154,7 +162,11 @@ def render(filters: dict) -> None:
     # =========================================================
     # SCATTER + REGRESSION
     # =========================================================
-    col_sc, col_dist = st.columns([6, 4])
+    if is_classification:
+        col_sc, col_dist, col_roc = st.columns([4, 3, 3])
+    else:
+        col_sc, col_dist = st.columns([6, 4])
+        
     with col_sc:
         sample_scatter = df[[x_axis, target_y]].dropna().sample(
             min(3000, len(df)), random_state=42
@@ -186,6 +198,19 @@ def render(filters: dict) -> None:
                 charts.chart_distribution(df, target_y),
                 use_container_width=True, config={"displayModeBar": False},
             )
+            
+    if is_classification:
+        with col_roc:
+            fpr = metrics.get("fpr")
+            tpr = metrics.get("tpr")
+            auc = metrics.get("auc", 0)
+            if fpr is not None and tpr is not None:
+                st.plotly_chart(
+                    charts.chart_roc_curve(fpr, tpr, auc),
+                    use_container_width=True, config={"displayModeBar": False},
+                )
+            else:
+                st.info("Chưa có dữ liệu ROC")
 
     render_divider()
 
@@ -206,11 +231,42 @@ def render(filters: dict) -> None:
 
     # render_divider()
 
+    # =========================================================
+    # SHAP SUMMARY
+    # =========================================================
+    render_section_header("Mức Độ Quan Trọng Của Biến (SHAP - Giải Thích Tổng Thể)", "")
+
+    shap_info = st.empty()
+    run_shap = st.button("Tính Toán SHAP", key="diag_shap_btn")
+
+    if run_shap:
+        with st.spinner("Fitting surrogate + computing SHAP values…"):
+            shap_df = compute_shap_surrogate(df, target_col=target_y)
+        if shap_df.empty:
+            shap_info.warning("Lỗi khi tính toán SHAP. Hãy chắc chắn lightgbm hoặc scikit-learn đã được cài đặt.")
+        else:
+            shap_info.success(f"Giá trị SHAP được tính trên mẫu tối đa 2,000 dòng. Hiển thị Top {min(12, len(shap_df))} biến quan trọng.")
+            col_sh1, col_sh2 = st.columns([6, 4])
+            with col_sh1:
+                st.plotly_chart(
+                    charts.chart_shap_summary(shap_df),
+                    use_container_width=True, config={"displayModeBar": False},
+                )
+            with col_sh2:
+                st.dataframe(
+                    shap_df.head(15).style.format({"mean_abs_shap": "{:.5f}"}),
+                    use_container_width=True, hide_index=True, height=480
+                )
+    # else:
+        # shap_info.info("Bấm nút bên trên để tính toán giá trị SHAP")
+
+    # render_divider()
+
 
     # =========================================================
     # CONFOUNDER RANKING
     # =========================================================
-    # render_section_header("Xếp Hạng Biến Nhiễu (Liên kết Treatment × Outcome)", "")
+    render_section_header("Phân tích biến gây nhiễu", "")
     if treatment_col and outcome_col:
         with st.spinner("Computing confounder scores…"):
             confounder_df = compute_confounders(
@@ -249,36 +305,7 @@ def render(filters: dict) -> None:
 
     # render_divider()
 
-    # =========================================================
-    # SHAP SUMMARY
-    # =========================================================
-    render_section_header("Mức Độ Quan Trọng Của Biến (SHAP - Giải Thích Tổng Thể)", "")
-
-    shap_info = st.empty()
-    run_shap = st.button("Tính Toán SHAP", key="diag_shap_btn")
-
-    if run_shap:
-        with st.spinner("Fitting surrogate + computing SHAP values…"):
-            shap_df = compute_shap_surrogate(df, target_col=target_y)
-        if shap_df.empty:
-            shap_info.warning("Lỗi khi tính toán SHAP. Hãy chắc chắn lightgbm hoặc scikit-learn đã được cài đặt.")
-        else:
-            shap_info.success(f"Giá trị SHAP được tính trên mẫu tối đa 2,000 dòng. Hiển thị Top {min(12, len(shap_df))} biến quan trọng.")
-            col_sh1, col_sh2 = st.columns([6, 4])
-            with col_sh1:
-                st.plotly_chart(
-                    charts.chart_shap_summary(shap_df),
-                    use_container_width=True, config={"displayModeBar": False},
-                )
-            with col_sh2:
-                st.dataframe(
-                    shap_df.head(15).style.format({"mean_abs_shap": "{:.5f}"}),
-                    use_container_width=True, hide_index=True, height=480
-                )
-    # else:
-        # shap_info.info("Bấm nút bên trên để tính toán giá trị SHAP")
-
-    # render_divider()
+    
 
     # =========================================================
     # FULL DATA TABLE

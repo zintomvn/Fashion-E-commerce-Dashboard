@@ -64,8 +64,9 @@ def render(filters: dict) -> None:
     selected_cats = st.sidebar.multiselect("Chọn Category/Segment", options=avail_cats, default=[], key="promo_cats")
     
     target_mode = st.sidebar.radio("Cắt theo độ lớn Uplift", ["Top-N", "Ngưỡng Uplift"], horizontal=True, key="promo_target_mode")
+    max_customers = max(10, len(uplift_raw))
     if target_mode == "Top-N":
-        top_n = st.sidebar.number_input("Top-N khách hàng", min_value=10, max_value=100000, value=1000, step=100, key="promo_topn")
+        top_n = st.sidebar.number_input("Top-N khách hàng", min_value=10, max_value=max_customers, value=max_customers, step=100, key="promo_topn")
         uplift_thr = None
     else:
         top_n = None

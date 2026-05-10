@@ -266,8 +266,8 @@ def compute_shap_surrogate(
     # Subsample for performance
     sample = df.sample(min(max_rows, len(df)), random_state=42)
 
-    # --- FIX lỗi 4: exclude promo_order_rate when target=True_Y (treatment leakage)
-    # --- FIX lỗi 3: align exclude set with pipeline
+    # exclude promo_order_rate when target=True_Y (treatment leakage)
+    # align exclude set with pipeline
     if feature_cols is None:
         base_exclude = {target_col, "True_T", "True_Y", "customer_id", "product_id",
                         "P_Y_given_Promo", "P_Y_given_NoPromo", "Uplift_Score"}
@@ -289,7 +289,7 @@ def compute_shap_surrogate(
 
     y = sample[target_col].fillna(0)
 
-    # --- FIX lỗi 2: balanced training when target is binary
+    # balanced training when target is binary
     is_binary = (y.nunique() == 2 and set(y.dropna().unique()).issubset({0, 1}))
 
     try:
@@ -354,7 +354,7 @@ def compute_surrogate_metrics(
 
     sample = df.sample(min(max_rows, len(df)), random_state=42)
 
-    # --- FIX lỗi 3 + 4: align exclude set, block treatment-leaking feature for True_Y
+    # align exclude set, block treatment-leaking feature for True_Y
     if feature_cols is None:
         base_exclude = {target_col, "True_T", "True_Y", "customer_id", "product_id",
                         "P_Y_given_Promo", "P_Y_given_NoPromo", "Uplift_Score"}
@@ -365,7 +365,7 @@ def compute_surrogate_metrics(
             c for c in sample.select_dtypes(include=[np.number]).columns
             if c not in base_exclude
         ]
-        # FIX lỗi 3: include label-encoded categoricals from pipeline
+        # include label-encoded categoricals from pipeline
         cat_df, cat_cols = _encode_categoricals(sample)
         X = pd.concat([sample[num_cols].fillna(0), cat_df], axis=1) \
             if not cat_df.empty else sample[num_cols].fillna(0)
@@ -388,7 +388,7 @@ def compute_surrogate_metrics(
         X, y, test_size=0.2, random_state=42, stratify=strat
     )
 
-    # FIX lỗi 2: class-balanced model for imbalanced binary target
+    # class-balanced model for imbalanced binary target
     try:
         from lightgbm import LGBMRegressor, LGBMClassifier
         if is_binary:
@@ -414,7 +414,7 @@ def compute_surrogate_metrics(
         )
         y_prob = model.predict_proba(X_test)[:, 1]
 
-        # FIX lỗi 2: optimal threshold via Youden's J (not 0.5 on imbalanced data)
+        # class-balanced model for imbalanced binary target
         fpr, tpr, thresholds = roc_curve(y_test, y_prob)
         youden_j = tpr - fpr
         best_thresh = float(thresholds[np.argmax(youden_j)])
@@ -437,6 +437,8 @@ def compute_surrogate_metrics(
             "log_loss":          ll,
             "optimal_threshold": round(best_thresh, 4),
             "cm":                cm,          # ← confusion matrix for display
+            "fpr":               fpr,
+            "tpr":               tpr,
             # Keep r2/mae/rmse keys for display compatibility
             "r2":   auc,
             "mae":  round(1 - bal_acc, 4),

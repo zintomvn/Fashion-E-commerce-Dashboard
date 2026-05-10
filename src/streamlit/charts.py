@@ -195,17 +195,30 @@ def chart_order_status_monthly(orders: pd.DataFrame) -> go.Figure:
     pivot = grouped.pivot(index="month", columns="order_status", values="count").fillna(0)
 
     fig = go.Figure()
-    colors = [PALETTE["success"], PALETTE["danger"], PALETTE["info"],
-              PALETTE["secondary"], PALETTE["neutral"]]
+    status_colors = {
+        "delivered": PALETTE["success"],
+        "shipped": PALETTE["info"],
+        "cancelled": "#FA7B17",  # Orange
+        "returned": PALETTE["danger"],
+    }
+    
+    status_names = {
+        "delivered": "Giao thành công",
+        "shipped": "Đang giao",
+        "cancelled": "Đã hủy",
+        "returned": "Trả hàng",
+    }
+    
     for i, col in enumerate(pivot.columns):
+        status_name = str(col).lower()
         fig.add_trace(go.Bar(
             x=pivot.index, y=pivot[col],
-            name=str(col),
-            marker_color=colors[i % len(colors)],
+            name=status_names.get(status_name, str(col).title()),
+            marker_color=status_colors.get(status_name, PALETTE["neutral"]),
         ))
     _apply_theme(fig, "Phân Phối Trạng Thái Đơn Hàng (Theo Tháng)")
     fig.update_layout(
-        barmode="stack", height=340, xaxis_tickangle=-30,
+        barmode="stack", height=400, xaxis_tickangle=0,
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         margin=dict(b=80)
     )
@@ -591,6 +604,77 @@ def chart_feature_importance(comp_models: pd.DataFrame, segment: str) -> go.Figu
         return fig
 
 
+def chart_feature_importance_for_target(comp_models: pd.DataFrame, segment: str, target: str) -> go.Figure:
+    """Render horizontal bar of feature importances for a specific target in a segment.
+    
+    Parses top_importance (comma-separated feature names) and normalises scores so
+    the chart is always meaningful even without explicit numeric scores.
+    """
+    if comp_models.empty:
+        return go.Figure()
+    df = comp_models[(comp_models["customer_segment"] == segment) & (comp_models["target"] == target)]
+    if df.empty:
+        return go.Figure()
+
+    row = df.iloc[0]
+
+    # --- Try to get numeric scores from top_importance ---
+    features_raw = str(row.get("top_importance", ""))
+    raw_items = [x.strip() for x in features_raw.split(",") if x.strip()]
+
+    features, scores = [], []
+    for item in raw_items:
+        if ":" in item:
+            f, s = item.split(":", 1)
+            features.append(f.strip().replace("num__", "").replace("cat__", ""))
+            try:
+                scores.append(float(s.strip()))
+            except ValueError:
+                scores.append(0.0)
+        else:
+            features.append(item.replace("num__", "").replace("cat__", ""))
+            scores.append(0.0)
+
+    if not features:
+        return go.Figure()
+
+    # If no numeric scores, assign rank-based scores (top = highest rank)
+    if all(s == 0.0 for s in scores):
+        scores = list(range(len(features), 0, -1))
+
+    # Reverse so highest-importance feature appears at top of horizontal bar
+    features = features[::-1]
+    scores = scores[::-1]
+
+    TARGET_LABELS = {
+        "unit_price": "Giá bán (unit_price)",
+        "quantity": "Số lượng (quantity)",
+        "cost": "Chi phí (cost)",
+    }
+    title = f"{TARGET_LABELS.get(target, target)}"
+
+    bar_colors = [PALETTE["primary"]] * len(features)
+    bar_colors[-1] = PALETTE["success"]  # Highlight the most important feature
+
+    fig = go.Figure(go.Bar(
+        x=scores, y=features,
+        orientation="h",
+        marker=dict(
+            color=scores,
+            colorscale=[[0, PALETTE["info"]], [1, PALETTE["primary"]]],
+            showscale=False,
+        ),
+        hovertemplate="%{y}: %{x:.4f}<extra></extra>",
+    ))
+    _apply_theme(fig, title)
+    fig.update_layout(
+        height=max(280, len(features) * 30 + 80),
+        xaxis_title="Mức độ quan trọng",
+        margin=dict(l=10, r=10, t=50, b=30),
+    )
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # PAGE D — DIAGNOSTICS / XAI CHARTS
 # ---------------------------------------------------------------------------
@@ -670,8 +754,9 @@ def chart_scatter_regression(
         name=line_name,
     ))
     _apply_theme(fig, f"Biểu Đồ Phân Tán: {x_col} vs {y_col}")
-    fig.update_layout(height=380, xaxis_title=x_col, yaxis_title=y_col, 
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1),
+    fig.update_layout(height=420, xaxis_title=x_col, yaxis_title=y_col, 
+        # legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="right", x=1),
+        legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
     )
     return fig
 
@@ -696,7 +781,7 @@ def chart_confounder_bar(confounder_df: pd.DataFrame) -> go.Figure:
         hovertemplate="%{y}: điểm=%{x:.4f}<br>assoc_T=%{customdata[0]:.3f}, assoc_Y=%{customdata[1]:.3f}<extra></extra>",
         customdata=df[["assoc_T", "assoc_Y"]].values,
     ))
-    _apply_theme(fig, "Top Biến Gây Nhiễu (assoc_T × assoc_Y)")
+    _apply_theme(fig, "Top Biến Gây Nhiễu")
     fig.update_layout(height=420)
     return fig
 
@@ -735,7 +820,7 @@ def chart_distribution(df: pd.DataFrame, col: str, nbins: int = 40) -> go.Figure
         opacity=0.75,
     ))
     _apply_theme(fig, f"Phân Phối Của {col}")
-    fig.update_layout(height=380, xaxis_title=col, yaxis_title="Số lượng")
+    fig.update_layout(height=420, xaxis_title=col, yaxis_title="Số lượng")
     return fig
 
 
@@ -755,7 +840,7 @@ def chart_box_by_class(df: pd.DataFrame, num_col: str, class_col: str) -> go.Fig
         labels={class_col: "Lớp (Class)", num_col: num_col}
     )
     _apply_theme(fig, f"Phân Bố {num_col} Theo {class_col}")
-    fig.update_layout(height=380, showlegend=False)
+    fig.update_layout(height=420, showlegend=False)
     return fig
 
 def chart_confusion_matrix(cm: np.ndarray) -> go.Figure:
@@ -782,10 +867,34 @@ def chart_confusion_matrix(cm: np.ndarray) -> go.Figure:
     # Update layout
     _apply_theme(fig, "Ma Trận Nhầm Lẫn (Confusion Matrix)")
     fig.update_layout(
-        height=380,
+        height=420,
         xaxis_title="Dự Đoán",
         yaxis_title="Thực Tế",
         yaxis=dict(autorange="reversed")
+    )
+    return fig
+
+
+def chart_roc_curve(fpr, tpr, auc: float) -> go.Figure:
+    """ROC Curve."""
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=fpr, y=tpr,
+        name=f"ROC (AUC = {auc:.3f})",
+        line=dict(color=PALETTE["primary"], width=2)
+    ))
+    fig.add_trace(go.Scatter(
+        x=[0, 1], y=[0, 1],
+        name="Ngẫu nhiên",
+        line=dict(color=PALETTE["muted"], width=2, dash="dash")
+    ))
+    _apply_theme(fig, "Đường Cong ROC")
+    fig.update_layout(
+        height=420,
+        xaxis_title="Tỷ lệ Dương Tính Giả (FPR)",
+        yaxis_title="Tỷ lệ Dương Tính Thật (TPR)",
+        legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5),
+        margin=dict(b=80)
     )
     return fig
 

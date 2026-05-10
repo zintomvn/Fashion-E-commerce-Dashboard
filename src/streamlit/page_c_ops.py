@@ -30,7 +30,7 @@ def _fmt(val, prefix="₫"):
 def render(filters: dict) -> None:
     render_page_header(
         title="Phân tích Vận Hành — Tối Ưu Hóa Lợi Nhuận",
-        subtitle="Phân tích giả định theo các yếu tố: Giá, Giá vốn, Tồn kho, Vận chuyển, Hoàn hàng",
+        subtitle="Phân tích giả định từng phân khúc khách hàng theo các yếu tố: Giá, Giá vốn, Tồn kho, Vận chuyển, Hoàn hàng",
         # icon="",
         # timestamp=pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
     )
@@ -44,7 +44,7 @@ def render(filters: dict) -> None:
         orders_raw  = D.load_orders_enriched()
 
     if cf_raw.empty:
-        st.error("Counterfactual data not found. Ensure `outputs/profit_optimization_counterfactual_actions.csv` exists.")
+        st.error("Counterfactual data not found. Ensure `outputs/   .csv` exists.")
         return
 
     engine = OpsEngine(cf_raw)
@@ -53,7 +53,7 @@ def render(filters: dict) -> None:
     # CONTROLS
     # =========================================================
     # render_section_header("Điều Khiển Kịch Bản", "")
-    st.sidebar.markdown("### Điều Khiển Kịch Bản")
+    st.sidebar.markdown("### Bộ lọc")
     
     all_segments = engine.segments
     selected_seg = st.sidebar.selectbox("Phân khúc khách hàng", all_segments, key="ops_segment")
@@ -192,29 +192,97 @@ def render(filters: dict) -> None:
     # render_divider()
 
     # =========================================================
-    # FEATURE IMPORTANCE / EXPLAINABILITY
+    # EXPERIMENT SECTION — Hypothesis Testing, Feature Importance, Model Metrics
     # =========================================================
-    render_section_header("Giải Thích Mô Hình — Mức Độ Quan Trọng Của Biến", "")
-    if not comp_models.empty:
-        col_e1, col_e2 = st.columns([5, 5])
-        with col_e1:
-            st.plotly_chart(
-                charts.chart_feature_importance(comp_models, selected_seg),
-                use_container_width=True, config={"displayModeBar": False},
-            )
-        with col_e2:
-            # Show raw table
-            seg_models = comp_models[comp_models["customer_segment"] == selected_seg]
-            if not seg_models.empty:
-                st.dataframe(
-                    seg_models[["target", "best_model", "best_r2", "best_rmse", "top_mi", "top_importance"]].style.format({
-                        "best_r2": "{:.3f}", "best_rmse": "{:,.1f}"
-                    }),
-                    use_container_width=True, height=280,
-                )
+    TARGETS = ["unit_price", "quantity", "cost"]
+    TARGET_VN = {
+        "unit_price": "Giá bán (unit_price)",
+        "quantity": "Số lượng (quantity)",
+        "cost": "Chi phí (cost)",
+    }
+
+    seg_models = comp_models[comp_models["customer_segment"] == selected_seg] if not comp_models.empty else pd.DataFrame()
+
+    # --- Hypothesis Testing Summary (3 columns) ---
+    # render_section_header("Kiểm Định Giả Thuyết — Top Biến Có Ý Nghĩa Thống Kê (Mutual Information)", "")
+    # st.caption("Các biến được chọn qua kiểm định thống kê (Spearman/Mann-Whitney/Kruskal-Wallis) và xếp hạng theo điểm Mutual Information (MI) từ pipeline model cho từng target.")
+    if not seg_models.empty:
+        hyp_cols = st.columns(3)
+        for col_idx, target in enumerate(TARGETS):
+            with hyp_cols[col_idx]:
+                st.markdown(f"**{TARGET_VN.get(target, target)}**")
+                row = seg_models[seg_models["target"] == target]
+                if not row.empty:
+                    mi_str = str(row.iloc[0].get("top_mi", ""))
+                    features_sig = [f.strip() for f in mi_str.split(",") if f.strip()]
+                    if features_sig:
+                        hyp_df = pd.DataFrame({
+                            "Biến": [
+                                f.replace("num__", "").replace("cat__", "") for f in features_sig[:5]
+                            ],
+                            "Thứ hạng": list(range(1, min(len(features_sig), 5) + 1)),
+                        })
+                        st.dataframe(hyp_df, use_container_width=True, hide_index=True, height=215)
+                    else:
+                        st.info("Không có dữ liệu")
+                else:
+                    st.info("Không có dữ liệu")
     else:
         st.info("Dữ liệu mô hình thành phần không khả dụng.")
 
+    # render_divider()
+
+    # --- Feature Importance Charts (3 columns) ---
+    # render_section_header("Mức Độ Quan Trọng Của Biến (Feature Importance)", "")
+    # if not seg_models.empty:
+    #     fi_cols = st.columns(3)
+    #     for col_idx, target in enumerate(TARGETS):
+    #         with fi_cols[col_idx]:
+    #             fig_fi = charts.chart_feature_importance_for_target(comp_models, selected_seg, target)
+    #             st.plotly_chart(fig_fi, use_container_width=True, config={"displayModeBar": False})
+    # else:
+    #     st.info("Dữ liệu mô hình thành phần không khả dụng.")
+
+    render_divider()
+
+    # --- Model Metrics (3 columns, exclude CatBoost) ---
+    # render_section_header("Hiệu Suất Mô Hình — Model Tốt Nhất Trên 5 Models (Không CatBoost)", "")
+    # st.caption("So sánh Linear Regression, Ridge, Lasso, Random Forest, XGBoost/LightGBM — kết quả hiển thị model thắng theo R² trên tập test.")
+    if not seg_models.empty:
+        metrics_cols = st.columns(3)
+        for col_idx, target in enumerate(TARGETS):
+            with metrics_cols[col_idx]:
+                st.markdown(f"**{TARGET_VN.get(target, target)}**")
+                row = seg_models[seg_models["target"] == target]
+                if not row.empty:
+                    best_model_name = row.iloc[0].get("best_model", "N/A")
+                    best_r2 = row.iloc[0].get("best_r2", float("nan"))
+                    best_rmse = row.iloc[0].get("best_rmse", float("nan"))
+                    
+                    r2_str = f"{best_r2:.3f}" if pd.notna(best_r2) else "N/A"
+                    rmse_str = f"₫{best_rmse:,.0f}" if pd.notna(best_rmse) else "N/A"
+                    
+                    st.markdown(
+                        f"<p style='font-size: 0.9rem; margin-bottom: 4px;'>Model tốt nhất: "
+                        f"<span style='font-size: 1.2rem; font-weight: 600; color: #1E88E5;'>{best_model_name}</span></p>", 
+                        unsafe_allow_html=True
+                    )
+                    st.markdown(
+                        f"<p style='font-size: 0.9rem; margin-bottom: 4px;'>R² (test): "
+                        f"<span style='font-size: 1.2rem; font-weight: 600; color: #43A047;'>{r2_str}</span></p>", 
+                        unsafe_allow_html=True
+                    )
+                    st.markdown(
+                        f"<p style='font-size: 0.9rem; margin-bottom: 0px;'>RMSE (test): "
+                        f"<span style='font-size: 1.2rem; font-weight: 600; color: #E53935;'>{rmse_str}</span></p>", 
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.info("Không có dữ liệu")
+    else:
+        st.info("Dữ liệu mô hình thành phần không khả dụng.")
+
+    # render_divider()
 
     # =========================================================
     # LEADERBOARD — All Segments
@@ -223,8 +291,8 @@ def render(filters: dict) -> None:
     leaderboard = engine.leaderboard()
     if not leaderboard.empty:
         display_cols = [c for c in [
-            "customer_segment", "action", "feature",
-            "baseline_profit", "scenario_profit", "delta_profit", "delta_profit_pct",
+            "customer_segment", "action", 
+            "baseline_profit", "scenario_profit", "delta_profit",
             "delta_revenue", "delta_cost",
         ] if c in leaderboard.columns]
         
@@ -234,28 +302,55 @@ def render(filters: dict) -> None:
 
         st.dataframe(
             display_df.rename(columns={
+                "customer_segment": "Phân khúc",
+                "action": "Hành động",
                 "baseline_profit": "Lợi nhuận cơ sở",
                 "scenario_profit": "Lợi nhuận kịch bản",
-                "delta_profit": "Thay đổi lợi nhuận",
-                "delta_profit_pct": "% Thay đổi Lợi nhuận",
-                "delta_revenue": "Thay đổi doanh thu",
-                "delta_cost": "Thay đổi chi phí",
-                "action": "Hành động",
-                "feature": "Biến thay đổi",
-                "customer_segment": "Phân khúc"
+                "delta_profit": "Δ Lợi nhuận",
+                "delta_revenue": "Δ Doanh thu",
+                "delta_cost": "Δ Chi phí",
             }).style.format({
                 "Lợi nhuận cơ sở": "₫{:,.0f}",
                 "Lợi nhuận kịch bản": "₫{:,.0f}",
-                "Thay đổi lợi nhuận":    "₫{:,.0f}",
-                "% Thay đổi Lợi nhuận": "{:+.2f}%",
-                "Thay đổi doanh thu":   "₫{:,.0f}",
-                "Thay đổi chi phí":      "₫{:,.0f}",
+                "Δ Lợi nhuận":    "₫{:,.0f}",
+                "Δ Doanh thu":   "₫{:,.0f}",
+                "Δ Chi phí":      "₫{:,.0f}",
             }),
-            use_container_width=True, height=260,
+            use_container_width=True, height=210,
         )
 
 
     # render_divider()
+
+    # =========================================================
+    # COMPARATIVE FEATURE IMPORTANCE TABLE — All Segments × Targets
+    # =========================================================
+    render_section_header("Bảng So Sánh Feature Importance — Tất Cả Phân Khúc", "")
+    st.caption("So sánh top features (SHAP/Feature Importance) quan trọng nhất của từng phân khúc khách hàng cho từng mục tiêu kinh doanh.")
+    if not comp_models.empty:
+        pivot_rows = []
+        for _, row in comp_models.iterrows():
+            fi_str = str(row.get("top_importance", ""))
+            features = [
+                f.strip().replace("num__", "").replace("cat__", "")
+                for f in fi_str.split(",") if f.strip()
+            ]
+            pivot_rows.append({
+                "Phân khúc": row.get("customer_segment", ""),
+                "Mục tiêu": TARGET_VN.get(row.get("target", ""), row.get("target", "")),
+                "Top 1": features[0] if len(features) > 0 else "",
+                "Top 2": features[1] if len(features) > 1 else "",
+                "Top 3": features[2] if len(features) > 2 else "",
+                "Model tốt nhất": row.get("best_model", ""),
+                "R²": f"{row.get('best_r2', float('nan')):.3f}" if pd.notna(row.get('best_r2')) else "N/A",
+            })
+        if pivot_rows:
+            pivot_df = pd.DataFrame(pivot_rows)
+            st.dataframe(pivot_df, use_container_width=True, hide_index=True, height=360)
+        else:
+            st.info("Không có dữ liệu để tổng hợp.")
+    else:
+        st.info("Dữ liệu mô hình thành phần không khả dụng.")
 
     # =========================================================
     # DETAILED TABLE

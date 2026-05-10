@@ -139,7 +139,7 @@ def render(filters: dict) -> None:
     render_divider()
 
     # =========================================================
-    # REVENUE & COGS TREND
+    # 1. REVENUE & COGS TREND
     # =========================================================
     # render_section_header("Doanh Thu & Giá Vốn — Thực Tế + Dự Báo", "")
 
@@ -171,7 +171,7 @@ def render(filters: dict) -> None:
     #         )
 
     # =========================================================
-    # GROSS PROFIT AREA
+    # 2. GROSS PROFIT AREA
     # =========================================================
     # render_section_header("Xu hướng Lợi Nhuận Gộp", "")
     st.plotly_chart(
@@ -196,8 +196,6 @@ def render(filters: dict) -> None:
         )
         orders = orders[mask_o]
 
-
-    
     # Biểu đồ trạng thái đơn hàng theo tháng
     st.plotly_chart(
         charts.chart_order_status_monthly(orders),
