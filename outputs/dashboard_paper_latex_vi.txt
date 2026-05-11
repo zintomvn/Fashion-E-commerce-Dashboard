@@ -1,0 +1,514 @@
+% =====================================================================
+% BÁO CÁO LATEX (TIẾNG VIỆT) — Fashion E-commerce Dashboard
+% Tách 3 câu hỏi lớn tương ứng Page A/B/C; Page D bổ sung giải thích model.
+% ---------------------------------------------------------------------
+% Gợi ý biên dịch: XeLaTeX hoặc LuaLaTeX để hiển thị tiếng Việt ổn định.
+% Gợi ý package: \usepackage{graphicx} \usepackage{float} \usepackage{booktabs}
+%                \usepackage{amsmath} \usepackage{caption} \usepackage{hyperref}
+% =====================================================================
+
+\section{Phân tích theo Dashboard (3 câu hỏi lớn)}
+
+% =====================================================================
+% DASHBOARD A
+% =====================================================================
+\subsection{Dashboard A — Tổng quan lợi nhuận \& dự báo (Revenue/COGS/Gross Profit + RFM + BCG)}
+
+\subsubsection{Cơ sở lý thuyết}
+\begin{itemize}
+    \item \textbf{Chỉ số tài chính cơ bản.} Doanh thu (Revenue), giá vốn (COGS), lợi nhuận gộp (Gross Profit) và biên lợi nhuận gộp (Gross Margin) là các chỉ số nền tảng để đánh giá hiệu quả kinh doanh.
+    \begin{equation}
+        \text{Gross Profit} = \text{Revenue} - \text{COGS},\quad
+        \text{Gross Margin} = \frac{\text{Gross Profit}}{\text{Revenue}}.
+    \end{equation}
+
+    \item \textbf{Phân tích chuỗi thời gian và dự báo.} Dữ liệu doanh thu/chi phí thường có \emph{xu hướng} và \emph{mùa vụ}. Các mô hình cây tăng cường (Gradient Boosting như XGBoost/LightGBM) tận dụng các \emph{đặc trưng lịch} (tháng, thứ, ngày trong năm, kỳ nghỉ) để dự báo tốt hơn so với mô hình tuyến tính khi quan hệ là phi tuyến.
+
+    \item \textbf{RFM Segmentation.} RFM (Recency--Frequency--Monetary) là phương pháp phân khúc khách hàng dựa trên: độ gần lần mua gần nhất, tần suất mua, và giá trị chi tiêu. Có thể dùng phân cụm (ví dụ K-means) để nhóm khách hàng theo hành vi.
+
+    \item \textbf{Ma trận BCG/Portfolio.} Phân loại danh mục sản phẩm thành \emph{Stars, Cash Cows, Question Marks, Dogs} dựa trên trục giá trị (profit/margin) và trục quy mô (volume), phục vụ quyết định đầu tư/tối ưu danh mục.
+\end{itemize}
+
+\subsubsection{Tổng quan}
+\textbf{Bảng sử dụng (trực tiếp/hiển thị):} \texttt{data/raw/sales.csv}, \texttt{outputs/submission\_xgb\_fold5\_tuned.csv}, \texttt{data/raw/orders.csv}, \texttt{data/raw/order\_items.csv}, \texttt{outputs/customer\_rfm\_segments.csv}, \texttt{outputs/product\_profit\_volume\_segments.csv}.\\
+\textbf{Thông tin dashboard:} Dashboard A cung cấp bức tranh tổng quan về (i) xu hướng doanh thu--giá vốn--lợi nhuận theo thời gian (có tuỳ chọn hiển thị dự báo), (ii) phân rã trạng thái đơn hàng theo tháng, (iii) phân khúc khách hàng theo RFM và (iv) danh mục sản phẩm theo ma trận BCG.
+
+% --- Hình A1: Revenue/COGS + forecast ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Revenue \& COGS — Thực tế + Dự báo" (Page A)
+    \includegraphics[width=0.95\textwidth]{figures/dbA/a1-revenue-cogs-forecast.png}
+    \caption{Xu hướng doanh thu và giá vốn theo thời gian (kèm tuỳ chọn dự báo).}
+    \label{fig:dbA_rev_cogs_forecast}
+\end{figure}
+
+% --- Hình A2: Gross Profit ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Xu hướng Lợi nhuận gộp" (Page A)
+    \includegraphics[width=0.95\textwidth]{figures/dbA/a2-gross-profit.png}
+    \caption{Xu hướng lợi nhuận gộp theo thời gian.}
+    \label{fig:dbA_gross_profit}
+\end{figure}
+
+% --- Hình A3: Order status monthly ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Trạng thái đơn hàng theo tháng" (Page A)
+    \includegraphics[width=0.95\textwidth]{figures/dbA/a3-order-status-monthly.png}
+    \caption{Phân bổ trạng thái đơn hàng theo tháng.}
+    \label{fig:dbA_order_status}
+\end{figure}
+
+% --- Hình A4: RFM clustering ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "RFM clustering" (Page A)
+    \includegraphics[width=0.95\textwidth]{figures/dbA/a4-rfm-clustering.png}
+    \caption{Phân cụm khách hàng theo RFM.}
+    \label{fig:dbA_rfm_cluster}
+\end{figure}
+
+% --- Hình A5: Segment matrix ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Segment matrix" (Page A)
+    \includegraphics[width=0.95\textwidth]{figures/dbA/a5-segment-matrix.png}
+    \caption{Ma trận hành vi: tỷ trọng mua theo phân khúc khách hàng \& phân khúc sản phẩm (chuẩn hoá theo khách hàng).}
+    \label{fig:dbA_segment_matrix}
+\end{figure}
+
+% --- Hình A6: BCG portfolio ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "BCG portfolio" (Page A)
+    \includegraphics[width=0.95\textwidth]{figures/dbA/a6-bcg-portfolio.png}
+    \caption{Ma trận BCG/Portfolio phân loại sản phẩm theo lợi nhuận biên và sản lượng bán.}
+    \label{fig:dbA_bcg}
+\end{figure}
+
+\subsubsection{Câu hỏi phân tích (Câu hỏi lớn \#1)}
+\begin{enumerate}
+    \item \textbf{Xu hướng doanh thu/giá vốn/lợi nhuận gộp đang diễn biến như thế nào và dự báo giai đoạn tới ra sao?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db1/db11.png}
+        \caption{[caption]}
+        \label{fig:db1_q1}
+    \end{figure}
+
+    \item \textbf{Rủi ro vận hành thể hiện qua trạng thái đơn hàng (đặc biệt hoàn hàng/trễ giao) có thay đổi theo thời gian không?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db1/db12.png}
+        \caption{[caption]}
+        \label{fig:db1_q2}
+    \end{figure}
+
+    \item \textbf{Nhóm khách hàng nào đang đóng góp giá trị cao (RFM) và nên ưu tiên chăm sóc?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db1/db13.png}
+        \caption{[caption]}
+        \label{fig:db1_q3}
+    \end{figure}
+
+    \item \textbf{Danh mục sản phẩm nào cần đầu tư/duy trì/cắt giảm theo ma trận BCG, và có khác biệt theo phân khúc khách hàng không?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db1/db14.png}
+        \caption{[caption]}
+        \label{fig:db1_q4}
+    \end{figure}
+\end{enumerate}
+
+\subsubsection{Phân tích chi tiết}
+\paragraph{(1) Xu hướng \& dự báo doanh thu/giá vốn/lợi nhuận gộp}
+\textbf{Giả thuyết (Hypothesis).} Revenue và COGS có mùa vụ theo lịch (tháng, thứ trong tuần) và chịu tác động bởi các dịp cao điểm; do đó mô hình boosting với đặc trưng lịch có thể dự báo tốt hơn.
+
+\textbf{Feature engineering.} Tạo các biến lịch (tháng, thứ, ngày trong năm), các biến chu kỳ (sin/cos) và các biến tương tác lịch (nếu có).
+
+\textbf{Huấn luyện (Train).} Dùng mô hình boosting (ví dụ XGBoost) và chia tập theo thời gian (time-series split) để tránh rò rỉ tương lai.
+
+\textbf{Tuning.} Tối ưu siêu tham số để chọn mô hình có sai số thấp nhất; kết quả dự báo được xuất ra \texttt{outputs/submission\_xgb\_fold5\_tuned.csv}.
+
+\textbf{Giải thích (Explain).} Ưu tiên giải thích bằng mức độ quan trọng đặc trưng (feature importance) và kiểm tra tính hợp lý theo mùa vụ trên Hình~\ref{fig:dbA_rev_cogs_forecast}.
+
+\textbf{Nhận xét.} Trên Hình~\ref{fig:dbA_rev_cogs_forecast}, đường doanh thu và COGS cho thấy các pha tăng/giảm theo thời gian; phần dự báo giúp ước lượng kỳ vọng ngắn hạn và kiểm tra rủi ro biên lợi nhuận khi COGS tăng nhanh.
+
+\textbf{Insight.} Kết hợp Hình~\ref{fig:dbA_rev_cogs_forecast} và Hình~\ref{fig:dbA_gross_profit} giúp phát hiện giai đoạn \emph{doanh thu tăng nhưng biên lợi nhuận giảm} (COGS tăng nhanh hơn), từ đó ưu tiên kiểm soát giá vốn/chiết khấu trước khi tăng trưởng doanh thu.
+
+\paragraph{(2) Trạng thái đơn hàng theo tháng (vận hành \& hoàn hàng)}
+\textbf{Phương pháp.} Tổng hợp số lượng/ tỷ trọng trạng thái đơn hàng theo tháng (delivered/returned/\ldots) để quan sát xu hướng vận hành.
+
+\textbf{Nhận xét.} Hình~\ref{fig:dbA_order_status} phản ánh chất lượng vận hành theo thời gian; nếu tỷ lệ returned tăng theo thời gian, cần điều tra nguyên nhân (chất lượng sản phẩm, giao hàng, sai size\ldots).
+
+\textbf{Insight.} Khi tỷ lệ returned tăng đồng thời lợi nhuận gộp giảm (Hình~\ref{fig:dbA_gross_profit}), doanh nghiệp nên ưu tiên giảm hoàn hàng (chính sách size chart, chất lượng, kiểm soát vận chuyển) vì hoàn hàng vừa giảm doanh thu thực thu vừa tăng chi phí.
+
+\paragraph{(3) Phân khúc khách hàng RFM}
+\textbf{Phương pháp.} Dùng bộ ba Recency--Frequency--Monetary, sau đó phân cụm để phân loại các nhóm như \emph{Champions, Loyal Customers, Bargain Hunters, At Risk/Churn, Hibernating/Low Engagement}.
+
+\textbf{Nhận xét.} Hình~\ref{fig:dbA_rfm_cluster} cho thấy sự phân tách giữa nhóm giá trị cao (tần suất/chi tiêu cao, recency thấp) và nhóm có nguy cơ rời bỏ.
+
+\textbf{Insight.} Các nhóm \emph{Champions/Loyal Customers} nên là mục tiêu của chương trình giữ chân (membership, ưu đãi riêng) trong khi nhóm \emph{At Risk/Churn} cần can thiệp tái kích hoạt (re-activation) với điều kiện khuyến mãi/ưu đãi được \emph{cá nhân hoá} (liên hệ Dashboard B).
+
+\paragraph{(4) Danh mục sản phẩm theo BCG \& ma trận hành vi}
+\textbf{Phương pháp.} Gán nhãn BCG theo lợi nhuận biên và sản lượng bán: \emph{Stars, Cash Cows, Question Marks, Dogs}. Đồng thời tính ma trận tỷ trọng mua giữa phân khúc khách hàng và phân khúc sản phẩm (Hình~\ref{fig:dbA_segment_matrix}).
+
+\textbf{Nhận xét.} Hình~\ref{fig:dbA_bcg} xác định nhóm sản phẩm cần đầu tư (Stars) và nhóm cần tối ưu vòng đời (Cash Cows). Hình~\ref{fig:dbA_segment_matrix} chỉ ra mối liên hệ giữa nhóm khách hàng và cấu trúc danh mục.
+
+\textbf{Insight.} Nếu nhóm khách hàng giá trị cao (Champions/Loyal) tập trung mua \emph{Cash Cows/Stars} (Hình~\ref{fig:dbA_segment_matrix}), doanh nghiệp nên ưu tiên tồn kho và trải nghiệm giao hàng cho các SKU thuộc hai nhóm này để bảo vệ lợi nhuận.
+
+
+% =====================================================================
+% DASHBOARD B (+ D supplement)
+% =====================================================================
+\subsection{Dashboard B — Khuyến mãi: Uplift targeting \& mô phỏng lợi nhuận tăng thêm}
+
+\subsubsection{Cơ sở lý thuyết}
+\begin{itemize}
+    \item \textbf{Vấn đề hiệu ứng dị biệt (Heterogeneous Treatment Effect).} Khuyến mãi không tác động đồng đều: cùng một ưu đãi có thể tăng xác suất mua ở nhóm này nhưng không hiệu quả (thậm chí phản tác dụng) ở nhóm khác.
+
+    \item \textbf{Uplift modeling.} Mục tiêu là ước lượng \emph{tác động nhân quả cá nhân hoá}:
+    \begin{equation}
+        \text{Uplift}(x) = P(Y{=}1\mid T{=}1, x) - P(Y{=}1\mid T{=}0, x).
+    \end{equation}
+    Trong đó $T$ là treatment (có khuyến mãi/không), $Y$ là kết quả (mua/không mua), $x$ là đặc trưng.
+
+    \item \textbf{T-Learner.} Huấn luyện hai mô hình tách biệt cho $T{=}1$ và $T{=}0$, sau đó lấy chênh lệch xác suất làm uplift.
+
+    \item \textbf{Mô phỏng P\&L kỳ vọng (expected profit).} Giữ nguyên xác suất mua từ mô hình, thay đổi lợi nhuận biên theo mức giảm giá:
+    \begin{align}
+        m_{base} &= price - cogs,\\
+        m_{promo} &= promo\_price - cogs,\\
+        E[\pi_{base}] &= P(Y\mid NoPromo)\cdot m_{base},\\
+        E[\pi_{promo}] &= P(Y\mid Promo)\cdot m_{promo},\\
+        \Delta E[\pi] &= E[\pi_{promo}] - E[\pi_{base}].
+    \end{align}
+    Có thể điều chỉnh phạt theo \emph{return rate} nếu muốn giảm rủi ro hoàn hàng.
+\end{itemize}
+
+\subsubsection{Tổng quan}
+\textbf{Bảng sử dụng (hiển thị):} \texttt{outputs/uplift\_predictions\_test\_set.csv} (đã được enrich thêm \texttt{customer\_segment}).\\
+\textbf{Thông tin dashboard:} Dashboard B cho phép chọn nhóm khách hàng/danh mục, chọn cơ chế nhắm mục tiêu (Top-N hoặc ngưỡng uplift), và cấu hình chính sách khuyến mãi (percentage/fixed, mức giảm). Hệ thống mô phỏng lợi nhuận tăng thêm kỳ vọng theo từng khách hàng và tổng hợp theo nhóm.
+
+% --- Hình B1: Violin uplift distribution ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Phân phối điểm Uplift" (violin) (Page B)
+    \includegraphics[width=0.95\textwidth]{figures/dbB/b1-uplift-violin.png}
+    \caption{Phân phối Uplift Score theo nhóm (segment/category/channel).}
+    \label{fig:dbB_uplift_violin}
+\end{figure}
+
+% --- Hình B2: Expected profit by segment ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Lợi nhuận tăng thêm theo phân khúc" (Page B)
+    \includegraphics[width=0.95\textwidth]{figures/dbB/b2-expected-profit-by-segment.png}
+    \caption{Lợi nhuận tăng thêm kỳ vọng theo nhóm khi áp dụng chính sách khuyến mãi.}
+    \label{fig:dbB_profit_by_group}
+\end{figure}
+
+% --- Hình B3: Gain curve ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Gain curve" (Page B)
+    \includegraphics[width=0.95\textwidth]{figures/dbB/b3-gain-curve.png}
+    \caption{Đường cong lợi ích (lợi nhuận tăng thêm lũy kế) khi nhắm theo uplift/profit.}
+    \label{fig:dbB_gain_curve}
+\end{figure}
+
+% --- Hình B4: Waterfall ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Promo waterfall" (Page B)
+    \includegraphics[width=0.95\textwidth]{figures/dbB/b4-promo-waterfall.png}
+    \caption{Waterfall P\&L: tách hiệu ứng giảm biên lợi nhuận do khuyến mãi và hiệu ứng uplift.}
+    \label{fig:dbB_promo_waterfall}
+\end{figure}
+
+% --- Hình B5: Targeting table (screenshot) ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh bảng "Danh sách khách hàng mục tiêu" (Page B)
+    \includegraphics[width=0.95\textwidth]{figures/dbB/b5-targeting-table.png}
+    \caption{Bảng targeting: Top khách hàng/sản phẩm theo lợi nhuận tăng thêm kỳ vọng.}
+    \label{fig:dbB_targeting_table}
+\end{figure}
+
+\subsubsection{Câu hỏi phân tích (Câu hỏi lớn \#2)}
+\begin{enumerate}
+    \item \textbf{Khuyến mãi nên nhắm vào ai (theo segment/category/channel) để tối đa hoá lợi nhuận tăng thêm kỳ vọng?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db2/db21.png}
+        \caption{[caption]}
+        \label{fig:db2_q1}
+    \end{figure}
+
+    \item \textbf{Ngưỡng uplift / Top-N tối ưu là bao nhiêu để ROI dương và tránh “đốt” biên lợi nhuận?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db2/db22.png}
+        \caption{[caption]}
+        \label{fig:db2_q2}
+    \end{figure}
+
+    \item \textbf{Mức giảm giá (percentage/fixed) ảnh hưởng thế nào đến trade-off giữa biên lợi nhuận và uplift?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db2/db23.png}
+        \caption{[caption]}
+        \label{fig:db2_q3}
+    \end{figure}
+\end{enumerate}
+
+\subsubsection{Phân tích chi tiết}
+\paragraph{(1) Uplift distribution \& chọn nhóm mục tiêu}
+\textbf{Giả thuyết (Hypothesis).} Tác động khuyến mãi phụ thuộc phân khúc khách hàng và danh mục; vì vậy phân phối uplift theo nhóm sẽ có độ phân tán lớn (heterogeneity).
+
+\textbf{Feature engineering.} Sử dụng đặc trưng hành vi và ngữ cảnh mua hàng: RFM, lịch sử nhận khuyến mãi, thuộc tính sản phẩm (category/segment/size/color/price/cogs), và các biến kênh (device, acquisition channel, payment\ldots).
+
+\textbf{Huấn luyện (Train).} T-Learner với hai mô hình LightGBM: một cho nhóm $T{=}1$ (có promo) và một cho $T{=}0$ (không promo). Dùng \texttt{scale\_pos\_weight} để xử lý mất cân bằng lớp (imbalanced).
+
+\textbf{Tuning.} Tối ưu siêu tham số để tăng AUC/giảm log-loss (classification) và cải thiện tổng thể chất lượng dự báo $P(Y|T,x)$.
+
+\textbf{Giải thích (Explain).} Dùng Dashboard D (SHAP, correlation, confounders) để giải thích \emph{tại sao} uplift cao/thấp theo đặc trưng.
+
+\textbf{Nhận xét.} Hình~\ref{fig:dbB_uplift_violin} cho thấy uplift có thể âm ở một số nhóm (khuyến mãi làm giảm xác suất mua hoặc làm giảm lợi nhuận kỳ vọng), do đó không nên triển khai đại trà.
+
+\textbf{Insight.} Ưu tiên nhắm nhóm/segment có phân phối uplift dương rõ rệt (Hình~\ref{fig:dbB_uplift_violin}) và có đóng góp lợi nhuận tăng thêm cao (Hình~\ref{fig:dbB_profit_by_group}), thay vì tối đa số lượng khách hàng được giảm giá.
+
+\paragraph{(2) Gain curve \& tối ưu ngưỡng nhắm mục tiêu}
+\textbf{Phương pháp.} Sắp xếp khách hàng theo \texttt{expected\_uplift\_profit} hoặc \texttt{Uplift\_Score} và vẽ lợi nhuận tăng thêm lũy kế (gain curve).
+
+\textbf{Nhận xét.} Hình~\ref{fig:dbB_gain_curve} thể hiện hiệu quả biên (marginal gain) khi mở rộng tập mục tiêu. Khi đường cong bắt đầu “phẳng”, thêm khách hàng mới không còn đem lại lợi nhuận tăng thêm đáng kể.
+
+\textbf{Insight.} Chọn ngưỡng uplift hoặc Top-N tại điểm gãy của đường cong (Hình~\ref{fig:dbB_gain_curve}) giúp cân bằng giữa quy mô chiến dịch và ROI, tránh giảm giá cho nhóm có uplift thấp.
+
+\paragraph{(3) Waterfall P\&L \& trade-off mức giảm giá}
+\textbf{Phương pháp.} Tách hai hiệu ứng: (i) \emph{margin effect} do giảm giá làm giảm biên lợi nhuận; (ii) \emph{uplift effect} do tăng xác suất mua. Tổng hợp trong waterfall.
+
+\textbf{Nhận xét.} Hình~\ref{fig:dbB_promo_waterfall} giúp kiểm tra trường hợp ``uplift dương nhưng net âm'' (giảm giá quá mạnh khiến margin effect lớn hơn uplift effect).
+
+\textbf{Insight.} Mức giảm giá tối ưu thường không phải lớn nhất; cần chọn mức giảm sao cho \emph{uplift effect} vượt \emph{margin effect} (Hình~\ref{fig:dbB_promo_waterfall}) và ưu tiên nhắm nhóm có return rate thấp để giảm rủi ro (phạt theo return\_rate).
+
+
+% =====================================================================
+% DASHBOARD D (Supplement to B)
+% =====================================================================
+\subsubsection{Bổ sung (Dashboard D) — Phân tích sâu về dự đoán model (Diagnostics \& XAI cho Uplift)}
+
+\textbf{Bảng sử dụng (hiển thị):} \texttt{outputs/uplift\_predictions\_test\_set.csv} (các cột \texttt{True\_T}, \texttt{True\_Y}, \texttt{P\_Y\_given\_Promo}, \texttt{P\_Y\_given\_NoPromo}, \texttt{Uplift\_Score}).\\
+\textbf{Thông tin dashboard:} Dashboard D huấn luyện \emph{mô hình thay thế (surrogate)} trên mẫu nhỏ để (i) đánh giá mức dự báo (R²/MAE/RMSE hoặc AUC/Balanced Acc/LogLoss), (ii) kiểm tra tương quan (heatmap), (iii) diễn giải biến quan trọng bằng SHAP, và (iv) phát hiện biến gây nhiễu.
+
+\textbf{Cơ sở lý thuyết bổ sung.}
+\begin{itemize}
+    \item \textbf{Surrogate model.} Thay vì diễn giải trực tiếp mô hình gốc (có thể phức tạp), huấn luyện mô hình thay thế để xấp xỉ đầu ra (ví dụ Uplift\_Score) và dùng nó để giải thích.
+    \item \textbf{SHAP (Shapley Additive Explanations).} Đánh giá đóng góp trung bình của từng đặc trưng tới dự đoán; dùng mean(|SHAP|) để xếp hạng biến quan trọng.
+    \item \textbf{Biến gây nhiễu (Confounders).} Một biến $f$ là gây nhiễu nếu tương quan đồng thời với treatment $T$ và outcome $Y$. Điểm gây nhiễu được tính:
+    \begin{equation}
+        score(f)=|corr(f,T)|\times |corr(f,Y)|.
+    \end{equation}
+\end{itemize}
+
+% --- Hình D1: KPI surrogate metrics ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh KPI surrogate metrics (R²/MAE/RMSE hoặc AUC/BalAcc/LogLoss) (Page D)
+    \includegraphics[width=0.95\textwidth]{figures/dbD/d1-surrogate-metrics.png}
+    \caption{Chỉ số đánh giá mô hình surrogate theo biến mục tiêu được chọn.}
+    \label{fig:dbD_metrics}
+\end{figure}
+
+% --- Hình D2: Scatter/regression or box ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ Scatter+Regression (liên tục) hoặc Box-by-class (nhị phân) (Page D)
+    \includegraphics[width=0.95\textwidth]{figures/dbD/d2-scatter-or-box.png}
+    \caption{Quan hệ giữa biến giải thích (trục X) và biến mục tiêu (trục Y) trong dữ liệu uplift.}
+    \label{fig:dbD_scatter}
+\end{figure}
+
+% --- Hình D3: Distribution/Confusion Matrix ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh Distribution (y liên tục) hoặc Confusion Matrix (y nhị phân) (Page D)
+    \includegraphics[width=0.95\textwidth]{figures/dbD/d3-dist-or-cm.png}
+    \caption{Phân phối mục tiêu hoặc ma trận nhầm lẫn theo biến mục tiêu.}
+    \label{fig:dbD_dist_cm}
+\end{figure}
+
+% --- Hình D4: ROC curve (nếu y nhị phân) ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh ROC curve (chỉ khi mục tiêu là True\_Y) (Page D)
+    \includegraphics[width=0.95\textwidth]{figures/dbD/d4-roc.png}
+    \caption{ROC curve của surrogate classifier (khi mục tiêu là True\_Y).}
+    \label{fig:dbD_roc}
+\end{figure}
+
+% --- Hình D5: Correlation heatmap ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh Correlation heatmap (Page D)
+    \includegraphics[width=0.95\textwidth]{figures/dbD/d5-corr-heatmap.png}
+    \caption{Bản đồ nhiệt tương quan giữa các biến quan trọng (mục tiêu, treatment, outcome, RFM, giá\ldots).}
+    \label{fig:dbD_corr}
+\end{figure}
+
+% --- Hình D6: SHAP summary ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh SHAP summary + bảng top features (Page D)
+    \includegraphics[width=0.95\textwidth]{figures/dbD/d6-shap-summary.png}
+    \caption{Xếp hạng biến quan trọng theo mean(|SHAP|) từ surrogate model.}
+    \label{fig:dbD_shap}
+\end{figure}
+
+% --- Hình D7: Confounder ranking ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh Confounder ranking (bar + table) (Page D)
+    \includegraphics[width=0.95\textwidth]{figures/dbD/d7-confounders.png}
+    \caption{Xếp hạng biến gây nhiễu dựa trên $|corr(f,T)|\times|corr(f,Y)|$.}
+    \label{fig:dbD_confounders}
+\end{figure}
+
+\textbf{Nhận xét.} Các chỉ số surrogate (Hình~\ref{fig:dbD_metrics}) cung cấp tín hiệu về độ “dễ dự đoán” của mục tiêu. Heatmap (Hình~\ref{fig:dbD_corr}) giúp phát hiện tương quan bất thường (nguy cơ leakage).
+
+\textbf{Insight.} Khi một số biến có confounder score cao (Hình~\ref{fig:dbD_confounders}), cần kiểm soát chúng trong phân tích nhân quả/thiết kế A/B test; đồng thời dùng SHAP (Hình~\ref{fig:dbD_shap}) để ưu tiên các biến hợp lý về mặt kinh doanh (ví dụ price/cogs/RFM) thay vì biến proxy của treatment.
+
+
+% =====================================================================
+% DASHBOARD C
+% =====================================================================
+\subsection{Dashboard C — Vận hành: tối ưu lợi nhuận bằng phản thực (counterfactual) theo phân khúc}
+
+\subsubsection{Cơ sở lý thuyết}
+\begin{itemize}
+    \item \textbf{Tối ưu lợi nhuận theo đòn bẩy vận hành.} Lợi nhuận chịu ảnh hưởng đồng thời bởi giá bán, giá vốn, chi phí vận chuyển, hoàn hàng và khả năng đáp ứng tồn kho. Các đòn bẩy (giảm cogs, tăng price, giảm stockout\ldots) có thể tác động khác nhau theo phân khúc.
+
+    \item \textbf{Phân tích phảnfactual (counterfactual).} Giả lập ``nếu ta thay đổi biến $X$ theo một kịch bản'' thì lợi nhuận sẽ thay đổi bao nhiêu, dựa trên mô hình/ước lượng đã học từ dữ liệu.
+
+    \item \textbf{Mô hình thành phần (component models).} Tách bài toán thành các mục tiêu dễ học hơn (ví dụ \texttt{unit\_price}, \texttt{quantity}, \texttt{cost}) và chọn mô hình tốt nhất theo từng phân khúc. Chỉ số đánh giá thường dùng: $R^2$ và RMSE.
+
+    \item \textbf{Chọn biến có ý nghĩa.} Dùng điểm Mutual Information (MI) và/hoặc kiểm định thống kê để lọc biến quan trọng trước khi mô hình hoá; sau đó dùng feature importance để diễn giải.
+\end{itemize}
+
+\subsubsection{Tổng quan}
+\textbf{Bảng sử dụng (hiển thị):} \texttt{outputs/profit\_optimization\_counterfactual\_actions.csv}, \texttt{outputs/profit\_optimization\_best\_actions\_by\_segment.csv}, \texttt{outputs/profit\_optimization\_component\_models.csv}.\\
+\textbf{Thông tin dashboard:} Dashboard C cho phép chọn phân khúc khách hàng và so sánh nhiều kịch bản vận hành. Kết quả thể hiện dưới dạng: (i) biểu đồ thanh \% thay đổi lợi nhuận theo hành động, (ii) waterfall giải thích thay đổi P\&L, và (iii) bảng leaderboard hành động tốt nhất cho mọi phân khúc, kèm tóm tắt mô hình thành phần.
+
+% --- Hình C1: Delta profit bar ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "% Thay đổi lợi nhuận theo hành động" (Page C)
+    \includegraphics[width=0.95\textwidth]{figures/dbC/c1-delta-profit-bar.png}
+    \caption{So sánh \% thay đổi lợi nhuận theo các hành động (counterfactual) trong một phân khúc.}
+    \label{fig:dbC_delta_profit}
+\end{figure}
+
+% --- Hình C2: Waterfall ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh biểu đồ "Waterfall kịch bản" (Page C)
+    \includegraphics[width=0.95\textwidth]{figures/dbC/c2-ops-waterfall.png}
+    \caption{Waterfall tách tác động doanh thu/chi phí trong một kịch bản vận hành.}
+    \label{fig:dbC_waterfall}
+\end{figure}
+
+% --- Hình C3: Hypothesis MI table (screenshot) ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh bảng "Top biến theo Mutual Information" (Page C)
+    \includegraphics[width=0.95\textwidth]{figures/dbC/c3-top-mi.png}
+    \caption{Top biến theo Mutual Information cho các mục tiêu \texttt{unit\_price}, \texttt{quantity}, \texttt{cost} trong phân khúc.}
+    \label{fig:dbC_mi}
+\end{figure}
+
+% --- Hình C4: Model metrics cards (screenshot) ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh phần "Model tốt nhất + R² + RMSE" cho 3 mục tiêu (Page C)
+    \includegraphics[width=0.95\textwidth]{figures/dbC/c4-component-model-metrics.png}
+    \caption{Hiệu suất mô hình thành phần theo từng mục tiêu trong một phân khúc.}
+    \label{fig:dbC_component_metrics}
+\end{figure}
+
+% --- Hình C5: Leaderboard best action table ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh bảng "Hành động tốt nhất từng phân khúc" (Page C)
+    \includegraphics[width=0.95\textwidth]{figures/dbC/c5-leaderboard.png}
+    \caption{Leaderboard hành động tốt nhất theo từng phân khúc khách hàng.}
+    \label{fig:dbC_leaderboard}
+\end{figure}
+
+% --- Hình C6: Feature importance comparison table ---
+\begin{figure}[H]
+    \centering
+    % TODO: Chèn ảnh bảng "So sánh feature importance" (Page C)
+    \includegraphics[width=0.95\textwidth]{figures/dbC/c6-feature-importance-compare.png}
+    \caption{So sánh top feature importance theo phân khúc và mục tiêu kinh doanh.}
+    \label{fig:dbC_fi_compare}
+\end{figure}
+
+\subsubsection{Câu hỏi phân tích (Câu hỏi lớn \#3)}
+\begin{enumerate}
+    \item \textbf{Đòn bẩy vận hành nào (giá/giá vốn/tồn kho/\ldots) giúp tăng lợi nhuận mạnh nhất theo từng phân khúc?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db3/db31.png}
+        \caption{[caption]}
+        \label{fig:db3_q1}
+    \end{figure}
+
+    \item \textbf{Thay đổi lợi nhuận đến từ tăng doanh thu hay giảm chi phí? (giải thích bằng waterfall)}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db3/db32.png}
+        \caption{[caption]}
+        \label{fig:db3_q2}
+    \end{figure}
+
+    \item \textbf{Mô hình thành phần nào phù hợp nhất cho từng phân khúc (unit\_price/quantity/cost) và biến nào quan trọng?}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{db3/db33.png}
+        \caption{[caption]}
+        \label{fig:db3_q3}
+    \end{figure}
+\end{enumerate}
+
+\subsubsection{Phân tích chi tiết}
+\paragraph{(1) Xếp hạng hành động theo \% thay đổi lợi nhuận}
+\textbf{Giả thuyết (Hypothesis).} Các phân khúc khác nhau có ``nút thắt'' khác nhau: nhóm giá trị cao nhạy với tối ưu COGS/price, trong khi nhóm trung thành có thể nhạy với tình trạng hết hàng (stockout).
+
+\textbf{Feature engineering.} Chuẩn hoá dữ liệu theo phân khúc; xây dựng các biến phản ánh vận hành: \texttt{cogs}, \texttt{price}, \texttt{stockout\_flag}, \texttt{stockout\_days}, \texttt{shipping\_fee\_allocated}, \texttt{return\_quantity}, \ldots
+
+\textbf{Huấn luyện (Train).} Huấn luyện các mô hình thành phần để dự báo \texttt{unit\_price}, \texttt{quantity}, \texttt{cost}. Sau đó tạo kịch bản phảnfactual bằng cách thay đổi một biến trong ``vùng p95'' của phân khúc.
+
+\textbf{Tuning.} Chọn mô hình thắng theo $R^2$ (ví dụ Random Forest cho \texttt{unit\_price}/\texttt{cost} ở nhiều phân khúc) và tinh chỉnh để giảm RMSE.
+
+\textbf{Giải thích (Explain).} Đọc bảng MI/feature importance (Hình~\ref{fig:dbC_mi}, Hình~\ref{fig:dbC_fi_compare}) để xác định biến tác động chính.
+
+\textbf{Nhận xét.} Biểu đồ Hình~\ref{fig:dbC_delta_profit} cho thấy các hành động có thể tạo ra mức thay đổi lợi nhuận rất khác nhau tuỳ phân khúc.
+
+\textbf{Insight.} Dựa trên bảng hành động tốt nhất (Hình~\ref{fig:dbC_leaderboard}), có thể rút ra quy tắc vận hành theo phân khúc (ví dụ: giảm \texttt{cogs} là đòn bẩy mạnh cho nhiều phân khúc; riêng nhóm \emph{Loyal Customers} cải thiện bằng cách giảm stockout).
+
+\paragraph{(2) Waterfall: lợi nhuận tăng do doanh thu hay do chi phí?}
+\textbf{Phương pháp.} Mỗi kịch bản có các thành phần: \texttt{baseline\_revenue}, \texttt{scenario\_revenue}, \texttt{baseline\_cost}, \texttt{scenario\_cost}. Waterfall (Hình~\ref{fig:dbC_waterfall}) giúp phân rã:
+\begin{equation}
+    \Delta Profit = \Delta Revenue - \Delta Cost.
+\end{equation}
+
+\textbf{Nhận xét.} Nếu một kịch bản tăng lợi nhuận chủ yếu nhờ \emph{giảm chi phí} (\(\Delta Cost<0\)), doanh nghiệp cần kiểm tra tính khả thi (đàm phán nhà cung cấp, tối ưu vận chuyển\ldots).
+
+\textbf{Insight.} Waterfall (Hình~\ref{fig:dbC_waterfall}) giúp ưu tiên các kịch bản ``an toàn'' (tăng lợi nhuận mà không phụ thuộc vào giả định tăng doanh thu khó đạt).
+
+\paragraph{(3) Chất lượng mô hình thành phần \& hàm ý tin cậy}
+\textbf{Nhận xét.} Từ metrics (Hình~\ref{fig:dbC_component_metrics}), các mục tiêu như \texttt{unit\_price} và \texttt{cost} thường có $R^2$ cao, trong khi \texttt{quantity} có thể khó dự báo (R² thấp/âm), do nhu cầu biến động mạnh và nhiễu.
+
+\textbf{Insight.} Các quyết định tối ưu nên ưu tiên đòn bẩy dựa trên biến có thể mô hình hoá ổn định (ví dụ tối ưu \texttt{cogs}/\texttt{price}), và thận trọng với kịch bản phụ thuộc nhiều vào dự báo \texttt{quantity} khi chất lượng mô hình thấp.

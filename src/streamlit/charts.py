@@ -200,6 +200,8 @@ def chart_order_status_monthly(orders: pd.DataFrame) -> go.Figure:
         "shipped": PALETTE["info"],
         "cancelled": "#FA7B17",  # Orange
         "returned": PALETTE["danger"],
+        "paid": PALETTE["neutral"], # Gray
+        "created": "#FBBC05",    # Yellow
     }
     
     status_names = {
@@ -207,6 +209,8 @@ def chart_order_status_monthly(orders: pd.DataFrame) -> go.Figure:
         "shipped": "Đang giao",
         "cancelled": "Đã hủy",
         "returned": "Trả hàng",
+        "paid": "Đã thanh toán",
+        "created": "Đơn mới tạo",
     }
     
     for i, col in enumerate(pivot.columns):
@@ -215,10 +219,12 @@ def chart_order_status_monthly(orders: pd.DataFrame) -> go.Figure:
             x=pivot.index, y=pivot[col],
             name=status_names.get(status_name, str(col).title()),
             marker_color=status_colors.get(status_name, PALETTE["neutral"]),
+            hovertemplate="<b>%{y:,.0f}</b> đơn hàng<extra></extra>",
         ))
     _apply_theme(fig, "Phân Phối Trạng Thái Đơn Hàng (Theo Tháng)")
     fig.update_layout(
         barmode="stack", height=400, xaxis_tickangle=0,
+        hovermode="x unified",
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         margin=dict(b=80)
     )
@@ -259,17 +265,20 @@ def chart_bcg_portfolio(portfolio: pd.DataFrame) -> go.Figure:
         hover_name="product_name",
         hover_data={"category": True, "price": ":.0f", "cogs": ":.0f"},
         size_max=20,
-        labels={"sales_volume": "Sản lượng bán", "gross_margin": "Biên lợi nhuận gộp (%)"},
+        labels={"sales_volume": "Sản lượng bán (log scale)", "gross_margin": "Biên lợi nhuận gộp (%)"},
+        log_x=True,
     )
     # Quadrant lines (medians)
     mx = df["sales_volume"].median()
     my = df["gross_margin"].median()
-    fig.add_vline(x=mx, line_dash="dash", line_color=PALETTE["muted"], opacity=0.5)
-    fig.add_hline(y=my, line_dash="dash", line_color=PALETTE["muted"], opacity=0.5)
+    fig.add_vline(x=mx, line_dash="dash", line_color=PALETTE["muted"], opacity=0.95)
+    fig.add_hline(y=my, line_dash="dash", line_color=PALETTE["muted"], opacity=0.95)
 
     _apply_theme(fig, "Danh Mục Sản Phẩm — Ma Trận BCG")
+    # Định dạng trục X log scale rõ ràng, không bị lỗi lặp minor ticks (2, 5)
+    fig.update_xaxes(dtick=1, tickformat=",d")
     fig.update_layout(
-        height=420, legend_title_text="Phân khúc",
+        height=480, legend_title_text="Phân khúc",
         legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
         margin=dict(b=80)
     )

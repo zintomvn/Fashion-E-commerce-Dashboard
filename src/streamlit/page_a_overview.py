@@ -87,11 +87,23 @@ def render(filters: dict) -> None:
         portfolio   = D.load_product_portfolio()
 
     # --- Date filter ---
+    st.sidebar.markdown("### Bộ Lọc Thời Gian")
+    min_dt = sales_full["Date"].min().date()
+    max_dt = sales_full["Date"].max().date()
+    date_range = st.sidebar.date_input(
+        "Khoảng thời gian",
+        value=(min_dt, max_dt),
+        min_value=min_dt,
+        max_value=max_dt,
+        key="page_a_date_range",
+    )
+    
     sales = sales_full.copy()
-    if filters.get("date_start") and filters.get("date_end"):
+    if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+        date_start, date_end = date_range
         mask = (
-            (sales["Date"].dt.date >= filters["date_start"]) &
-            (sales["Date"].dt.date <= filters["date_end"])
+            (sales["Date"].dt.date >= date_start) &
+            (sales["Date"].dt.date <= date_end)
         )
         sales = sales[mask]
 

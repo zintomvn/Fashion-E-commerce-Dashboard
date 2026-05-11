@@ -92,12 +92,8 @@ selected_page_label = st.sidebar.radio(
 selected_page = PAGES[selected_page_label]
 
 
-# Global filters
-filters = sidebar_global_filters(
-    orders_df=_orders_df,
-    uplift_df=_uplift_df,
-    sales_df=_sales_df,
-)
+# Global filters removed, handled per-page
+filters = {}
 
 # ---------------------------------------------------------------------------
 # ROUTING
