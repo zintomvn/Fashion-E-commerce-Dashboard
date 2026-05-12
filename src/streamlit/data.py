@@ -49,7 +49,8 @@ def load_sales() -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def load_forecast() -> pd.DataFrame:
     """XGBoost Revenue & COGS forecast (2023+)."""
-    df = _read(OUTPUTS / "submission_xgb_fold5_tuned.csv", parse_dates=["Date"])
+    # df = _read(OUTPUTS / "submission_xgb_fold5_tuned.csv", parse_dates=["Date"])
+    df = _read(OUTPUTS / "submission_test.csv", parse_dates=["Date"])
     if df.empty:
         df = _read(OUTPUTS / "submission_xgb_fold5.csv", parse_dates=["Date"])
     df = df.sort_values("Date").reset_index(drop=True)

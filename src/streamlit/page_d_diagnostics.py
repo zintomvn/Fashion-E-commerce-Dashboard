@@ -35,7 +35,7 @@ TARGET_OPTIONS = ["Uplift_Score", "gross_profit_historical", "True_Y"]
 
 def render(filters: dict) -> None:
     render_page_header(
-        title="Phân tích Hồi Quy và Giải Thích Model",
+        title="Phân tích và Giải Thích Model",
         subtitle="Đánh giá mô hình · Biến nhiễu · Feature importance (SHAP) · Giải thích Model",
         # subtitle="",
         icon="",
@@ -268,12 +268,20 @@ def render(filters: dict) -> None:
     # =========================================================
     render_section_header("Phân tích biến gây nhiễu", "")
     if treatment_col and outcome_col:
+        # Exclude model-derived predictions from confounder scan.
+        # Confounders should be pre-treatment covariates, not post-model outputs.
+        confounder_exclude = {"P_Y_given_Promo", "P_Y_given_NoPromo"}
         with st.spinner("Computing confounder scores…"):
             confounder_df = compute_confounders(
                 df,
                 treatment_col=treatment_col,
                 outcome_col=outcome_col,
-                numeric_cols=[c for c in NUMERIC_FEATURE_CANDIDATES if c in df.columns and c not in {treatment_col, outcome_col}],
+                numeric_cols=[
+                    c for c in NUMERIC_FEATURE_CANDIDATES
+                    if c in df.columns
+                    and c not in {treatment_col, outcome_col}
+                    and c not in confounder_exclude
+                ],
             )
         confounder_df = confounder_df.head(confounder_k)
         col_cf1, col_cf2 = st.columns([6, 4])

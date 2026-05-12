@@ -202,10 +202,8 @@ def render(filters: dict) -> None:
     }
 
     seg_models = comp_models[comp_models["customer_segment"] == selected_seg] if not comp_models.empty else pd.DataFrame()
-
-    # --- Hypothesis Testing Summary (3 columns) ---
-    # render_section_header("Kiểm Định Giả Thuyết — Top Biến Có Ý Nghĩa Thống Kê (Mutual Information)", "")
-    # st.caption("Các biến được chọn qua kiểm định thống kê (Spearman/Mann-Whitney/Kruskal-Wallis) và xếp hạng theo điểm Mutual Information (MI) từ pipeline model cho từng target.")
+    
+    
     if not seg_models.empty:
         hyp_cols = st.columns(3)
         for col_idx, target in enumerate(TARGETS):

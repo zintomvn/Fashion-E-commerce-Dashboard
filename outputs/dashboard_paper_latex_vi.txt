@@ -390,7 +390,7 @@
 \begin{itemize}
     \item \textbf{Tối ưu lợi nhuận theo đòn bẩy vận hành.} Lợi nhuận chịu ảnh hưởng đồng thời bởi giá bán, giá vốn, chi phí vận chuyển, hoàn hàng và khả năng đáp ứng tồn kho. Các đòn bẩy (giảm cogs, tăng price, giảm stockout\ldots) có thể tác động khác nhau theo phân khúc.
 
-    \item \textbf{Phân tích phảnfactual (counterfactual).} Giả lập ``nếu ta thay đổi biến $X$ theo một kịch bản'' thì lợi nhuận sẽ thay đổi bao nhiêu, dựa trên mô hình/ước lượng đã học từ dữ liệu.
+    \item \textbf{Phân tích phản factual (counterfactual).} Giả lập ``nếu ta thay đổi biến $X$ theo một kịch bản'' thì lợi nhuận sẽ thay đổi bao nhiêu, dựa trên mô hình/ước lượng đã học từ dữ liệu.
 
     \item \textbf{Mô hình thành phần (component models).} Tách bài toán thành các mục tiêu dễ học hơn (ví dụ \texttt{unit\_price}, \texttt{quantity}, \texttt{cost}) và chọn mô hình tốt nhất theo từng phân khúc. Chỉ số đánh giá thường dùng: $R^2$ và RMSE.
 
